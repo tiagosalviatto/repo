@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#DEDDD6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="braço">
+<title>braço — explorador de escalas e acordes no violão</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bench:#DEDDD6; --panel:#F2F1EC; --panel-2:#E7E6DF;
+  --ink:#1C1B18; --ink-soft:#67635C; --hair:#C7C5BC;
+  --wood-1:#332723; --wood-2:#241B18; --wire:#A9ADB2; --bone:#EDE7D9;
+  --c-root:#D5384B; --c-third:#E9A72B; --c-fifth:#38A3A5;
+  --c-seventh:#9B7BC8; --c-other:#CFC6B4;
+  /* largura, nunca altura: vh no iOS muda de valor quando a barra do
+     Safari aparece e desaparece, e o braço "respira" enquanto você rola */
+  --cell:clamp(30px,3.4vw,42px); --lane:clamp(36px,6.6vw,56px); --r:3px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bench);color:var(--ink);
+  font-family:'Archivo',ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+/* controles vivem sobre painel claro, onde o anel escuro contrasta (8,4:1) */
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+.wrap{max-width:1240px;margin:0 auto;padding:20px 18px 64px}
+header.top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+  padding-bottom:13px;margin-bottom:16px;border-bottom:1px solid var(--hair)}
+header.top h1{font-family:'Archivo Black','Archivo',sans-serif;font-weight:900;
+  font-size:clamp(26px,5vw,38px);letter-spacing:-.02em;margin:0;line-height:.95}
+header.top p{margin:0;color:var(--ink-soft);max-width:44ch}
+
+.card{background:var(--panel);border:1px solid var(--hair);border-radius:var(--r);padding:13px 14px}
+h2.lbl{margin:0 0 8px;font-size:12.5px;font-weight:600;color:var(--ink-soft)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.row.tight{gap:4px}
+.chip{background:var(--panel-2);border:1px solid var(--hair);border-radius:2px;
+  padding:5px 9px;cursor:pointer;font-size:13px;font-weight:500;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation}
+@media (hover:hover){.chip:hover{background:#dcdad1}}
+.chip[aria-pressed="true"],.chip.on{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+.chip:disabled{opacity:.4;cursor:default}
+select{background:var(--panel-2);border:1px solid var(--hair);border-radius:2px;
+  padding:7px 8px;font:inherit;width:100%;
+  /* abaixo de 16px o Safari do iPhone dá zoom na página ao focar o campo */
+  font-size:16px}
+label.field{display:block;font-size:12px;color:var(--ink-soft);margin:0 0 3px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* ---- barra de controles ---- */
+.deck{display:grid;gap:14px;margin-bottom:18px}
+@media (min-width:800px){.deck{grid-template-columns:minmax(250px,320px) 1fr}}
+.roots{display:grid;grid-template-columns:repeat(12,1fr);gap:3px}
+.roots .chip{padding:7px 0;text-align:center;font-size:12.5px;font-variant-numeric:tabular-nums}
+
+/* ---- palco: braço | leitura ---- */
+.stage{display:grid;gap:18px;align-items:start}
+@media (min-width:960px){
+  .stage{grid-template-columns:auto minmax(300px,1fr)}
+  .neck-col{grid-column:1;grid-row:1 / span 2}
+  #composicao{grid-column:2;grid-row:1}
+  #extras{grid-column:2;grid-row:2}
+}
+.neck-tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
+[hidden]{display:none!important}
+.spacer{flex:1 1 auto}
+
+/* ---- composição ---- */
+.comp{padding:0;overflow:hidden}
+.comp .head{padding:12px 14px 10px;border-bottom:1px solid var(--hair)}
+.comp .name{font-family:'Archivo Black','Archivo',sans-serif;font-size:24px;line-height:1.1}
+.comp .sub{color:var(--ink-soft);font-size:13px;margin-top:2px}
+table.tones{width:100%;border-collapse:collapse;font-size:13.5px}
+table.tones td{padding:6px 14px;border-bottom:1px solid var(--panel-2);vertical-align:baseline}
+table.tones tr:last-child td{border-bottom:0}
+table.tones td.deg{width:46px}
+table.tones td.note{width:58px;font-weight:600}
+table.tones td.iv{color:var(--ink-soft)}
+table.tones td.where{width:96px;text-align:right;color:var(--ink-soft);font-size:12px}
+table.tones tr.off td{opacity:.45}
+.pill{display:inline-block;min-width:26px;text-align:center;padding:2px 5px;border-radius:2px;
+  font-size:12px;font-weight:600;color:#1C1B18}
+.pill.root{background:var(--c-root);color:#fff}
+.pill.third{background:var(--c-third)}
+.pill.fifth{background:var(--c-fifth)}
+.pill.seventh{background:var(--c-seventh)}
+.pill.other{background:var(--c-other)}
+.voice{padding:9px 14px;border-top:1px solid var(--hair);font-size:13px;color:var(--ink-soft)}
+.voice b{color:var(--ink);font-weight:600}
+.forms{padding:11px 14px 13px;border-top:1px solid var(--hair)}
+.forms h3{margin:0 0 7px;font-size:12.5px;font-weight:600;color:var(--ink-soft)}
+.forms .row .chip{font-size:12.5px}
+.forms .chip .op{opacity:.6;font-size:11px}
+
+/* ---- campo harmônico ---- */
+.field-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:5px}
+.deg-btn{text-align:left;background:var(--panel-2);border:1px solid var(--hair);border-radius:2px;
+  padding:6px 8px;cursor:pointer;line-height:1.25}
+@media (hover:hover){.deg-btn:hover{background:#dcdad1}}
+.deg-btn .num{display:block;font-size:11px;color:var(--ink-soft)}
+.deg-btn .chd{font-weight:600;font-size:14px}
+.deg-btn.on{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+.deg-btn.on .num{color:#b9b6ae}
+
+/* ---- braço ---- */
+/* o braço deitado tem 13 colunas e não cabe na largura de um celular.
+   Rolagem local em vez de rolagem da página inteira, que arrastaria os
+   controles junto. O padding dá espaço pro anel de foco e pra sombra. */
+.board-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;
+  padding:12px 4px;margin:-12px -4px;overscroll-behavior-x:contain}
+.board{display:grid;position:relative;margin:0 auto;
+  filter:drop-shadow(0 10px 22px rgba(28,27,24,.22))}
+.board[data-orient="v"]{grid-template-columns:2rem repeat(6,var(--lane));grid-auto-rows:var(--cell)}
+.board[data-orient="h"]{grid-template-rows:repeat(6,var(--cell)) 1.3rem;grid-auto-columns:var(--lane)}
+.cell{position:relative;display:flex;align-items:center;justify-content:center}
+.cell.wood{background:linear-gradient(105deg,var(--wood-1),var(--wood-2))}
+.board[data-orient="v"] .cell.wood{border-top:2px solid var(--wire)}
+.board[data-orient="h"] .cell.wood{border-right:2px solid var(--wire)}
+.board[data-orient="v"] .cell.wood.nutside{border-top:5px solid var(--bone)}
+.board[data-orient="h"] .cell.wood.nutside{border-right:5px solid var(--bone)}
+.cell.open{background:transparent}
+.axis{font-size:11.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums;
+  justify-content:flex-end;padding-right:6px}
+.board[data-orient="h"] .axis{justify-content:center;padding:0;align-items:flex-start}
+.axis.mark{color:var(--ink);font-weight:600}
+.str{position:absolute;background:linear-gradient(90deg,#7d8288,#c9ced3,#7d8288);z-index:1;opacity:.9}
+.board[data-orient="v"] .str{width:var(--g);height:100%;left:50%;transform:translateX(-50%)}
+.board[data-orient="h"] .str{height:var(--g);width:100%;top:50%;transform:translateY(-50%);
+  background:linear-gradient(0deg,#7d8288,#c9ced3,#7d8288)}
+.cell.open .str{opacity:.3}
+.cell.muted .str{opacity:.18}
+.inlay{position:absolute;width:9px;height:9px;border-radius:50%;
+  background:var(--bone);opacity:.5;z-index:0;pointer-events:none}
+.board[data-orient="v"] .inlay{right:-4.5px;top:50%;margin-top:-4.5px}
+.board[data-orient="h"] .inlay{bottom:-4.5px;left:50%;margin-left:-4.5px}
+.dot{position:relative;z-index:2;cursor:pointer;
+  width:calc(var(--cell) * .8);height:calc(var(--cell) * .8);max-width:33px;max-height:33px;
+  border-radius:50%;border:1px solid transparent;background:transparent;
+  display:flex;align-items:center;justify-content:center;padding:0;
+  font-size:11.5px;font-weight:600;letter-spacing:-.02em;color:rgba(237,231,217,.26);
+  transition:background-color .1s linear,color .1s linear,transform .08s ease-out;
+  -webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;
+  touch-action:manipulation}
+.cell.open .dot{color:rgba(28,27,24,.42)}
+.dot.hide,.cell.open .dot.hide{color:transparent}
+.dot.hide:focus-visible{color:rgba(237,231,217,.6)}
+.cell.open .dot.hide:focus-visible{color:rgba(28,27,24,.6)}
+/* num aparelho de toque não existe "passar o mouse": o estado de hover
+   fica colado na última casa tocada. Então só aplico onde há ponteiro. */
+@media (hover:hover){
+  .dot:hover{transform:scale(1.14);color:var(--bone)}
+  .cell.open .dot:hover{color:var(--ink)}
+  .dot.hide:hover{color:rgba(237,231,217,.6)}
+  .cell.open .dot.hide:hover{color:rgba(28,27,24,.6)}
+}
+
+/* ---- anel de foco do teclado ----
+   O anel padrão da página é escuro, e sobre o jacarandá isso dá 1,02:1
+   de contraste — invisível. O braço tem dois fundos (madeira escura e
+   bancada clara nas cordas soltas), então uma cor só nunca serve.
+   Solução: dois anéis concêntricos, um claro e um escuro. Sobre a
+   madeira o claro aparece (13,7:1); sobre a bancada o escuro aparece
+   (7,4:1). Em qualquer fundo pelo menos um passa o mínimo de 3:1. */
+.dot:focus-visible{
+  outline:2.5px solid var(--bone);
+  outline-offset:2px;
+  transform:scale(1.14);
+}
+.dot:focus-visible::after{
+  content:'';position:absolute;inset:-9px;border-radius:50%;
+  border:2.5px solid rgba(28,27,24,.85);pointer-events:none;
+}
+/* a casa em foco sobe de camada pra o anel não ser coberto pela vizinha */
+.cell:has(.dot:focus-visible){z-index:5}
+.dot.on{color:#1C1B18;border-color:rgba(0,0,0,.22)}
+.dot.on.root{background:var(--c-root);color:#fff;box-shadow:0 0 0 3px rgba(213,56,75,.28)}
+.dot.on.third{background:var(--c-third)}
+.dot.on.fifth{background:var(--c-fifth)}
+.dot.on.seventh{background:var(--c-seventh)}
+.dot.on.other{background:var(--c-other)}
+.dot.x{color:var(--ink-soft);font-weight:400;font-size:14px}
+
+.legend{display:flex;flex-wrap:wrap;gap:11px;margin-top:13px;font-size:12.5px;color:var(--ink-soft)}
+.legend span{display:flex;align-items:center;gap:5px}
+.legend i{width:11px;height:11px;border-radius:50%;display:inline-block}
+.hint{font-size:12.5px;color:var(--ink-soft);margin:9px 0 0;max-width:56ch}
+kbd{background:var(--panel-2);border:1px solid var(--hair);border-bottom-width:2px;
+  border-radius:2px;padding:0 4px;font-family:inherit;font-size:11.5px}
+
+.foot{display:grid;gap:14px;margin-top:22px}
+@media (min-width:800px){.foot{grid-template-columns:minmax(250px,320px) 1fr}}
+details.gloss summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-soft);list-style:none}
+details.gloss summary::-webkit-details-marker{display:none}
+details.gloss summary::before{content:'+ ';font-weight:400}
+details.gloss[open] summary::before{content:'– '}
+details.gloss dl{margin:10px 0 0;font-size:13px;line-height:1.5;
+  columns:2;column-gap:26px}
+@media (max-width:700px){details.gloss dl{columns:1}}
+details.gloss dt{font-weight:600;margin-top:9px;break-after:avoid}
+details.gloss dd{margin:1px 0 0;color:var(--ink-soft)}
+details.gloss dd b{color:var(--ink);font-weight:600}
+/* ---- telas de toque estreitas (iPhone em pé) ----
+   Em 390px de largura sobram 358px de conteúdo. Com 32px da coluna de
+   números, cada uma das 6 cordas ganha 54px, o que dá alvo de 40px com
+   6px de folga — contra os 29px de antes. Também troco vh por px: o vh
+   no Safari do iOS se mede contra a barra de ferramentas dinâmica e
+   muda de valor conforme você rola. */
+@media (max-width:760px), (pointer:coarse){
+  /* a corda é fluida: divide a largura que sobra depois do padding da
+     página (28px) e da coluna de números (32px), com folga. Assim cabe
+     num SE de 375px e num Pro Max de 430px sem rolagem lateral. vw pode,
+     vh não: largura não muda quando a barra do Safari aparece e some. */
+  :root{--cell:46px; --lane:clamp(44px, calc((100vw - 66px) / 6), 58px)}
+  .dot{width:min(40px, calc(var(--lane) - 12px));height:min(40px, calc(var(--cell) - 6px));
+       max-width:40px;max-height:40px;font-size:13px}
+  .roots{grid-template-columns:repeat(6,1fr);gap:4px}
+  .roots .chip{padding:10px 0;font-size:14px}
+  .chip{padding:8px 11px}
+  .deg-btn{padding:9px 10px}
+  .wrap{padding:14px 14px calc(64px + env(safe-area-inset-bottom))}
+  header.top{padding-bottom:11px;margin-bottom:13px}
+  header.top p{font-size:14px}
+}
+/* rodando como app na tela de início, a barra de status invade o topo */
+@media (display-mode:standalone){
+  .wrap{padding-top:max(16px, env(safe-area-inset-top))}
+}
+
+.nojs{border:1px solid var(--ink);border-left-width:4px;background:var(--panel);
+  border-radius:var(--r);padding:16px 18px;max-width:62ch}
+.nojs h2{margin:0 0 8px;font-family:'Archivo Black','Archivo',sans-serif;
+  font-size:19px;line-height:1.2}
+.nojs p{margin:0 0 9px}
+.nojs ol{margin:0;padding-left:20px}
+.nojs li{margin-bottom:9px}
+.nojs code{background:var(--panel-2);border:1px solid var(--hair);border-radius:2px;
+  padding:1px 4px;font-size:13px;word-break:break-all}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1>braço</h1>
+    <p>Clique numa nota e veja onde ela mora no resto do braço. Escolha um acorde e veja a forma que se toca.</p>
+  </header>
+
+  <noscript>
+    <style>.deck,.stage,.foot{display:none}</style>
+    <div class="nojs">
+      <h2>O JavaScript não está rodando aqui</h2>
+      <p>O braço, os acordes e as listas são montados na hora, por script. Sem script sobra a casca — braço vazio e dropdowns em branco, que é provavelmente o que você está vendo.</p>
+      <p>A causa quase sempre é a pré-visualização do app Arquivos do iPhone: ela desenha HTML, mas não executa script. Três saídas, da mais rápida para a mais durável:</p>
+      <ol>
+        <li><b>Abra pelo app do Claude.</b> Toque no arquivo na conversa onde ele foi entregue — ali ele roda.</li>
+        <li><b>Sirva pela rede local.</b> Num computador na mesma rede, dentro da pasta do arquivo: <code>python3 -m http.server 8000</code>. No iPhone, abra <code>http://IP-DO-COMPUTADOR:8000/braco.html</code>.</li>
+        <li><b>Hospede num servidor.</b> Qualquer host estático serve. Com URL fixa e HTTPS, o <i>Adicionar à Tela de Início</i> funciona e ele abre como aplicativo.</li>
+      </ol>
+    </div>
+  </noscript>
+
+  <!-- ============ CONTROLES ============ -->
+  <div class="deck">
+    <div class="card">
+      <h2 class="lbl">Tom</h2>
+      <div class="roots" id="roots"></div>
+      <div style="margin-top:9px">
+        <label class="field" for="sel-key">Maior ou menor</label>
+        <select id="sel-key"></select>
+      </div>
+      <div class="row tight" style="margin-top:9px">
+        <button class="chip" id="btn-acc" type="button">sustenidos</button>
+        <button class="chip" id="btn-label" type="button">rótulo: nota</button>
+        <button class="chip" id="btn-clear" type="button">recomeçar</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2 class="lbl">O que desenhar</h2>
+      <div class="row tight" style="margin-bottom:9px">
+        <button class="chip" data-kind="nota" type="button">uma nota</button>
+        <button class="chip" data-kind="acorde" type="button">acorde</button>
+      </div>
+      <div><label class="field" for="sel-chord">Acorde</label><select id="sel-chord"></select></div>
+    </div>
+  </div>
+
+  <!-- ============ PALCO ============ -->
+  <div class="stage">
+
+    <section class="card comp" id="composicao"></section>
+
+    <div class="neck-col">
+      <div class="neck-tools">
+        <button class="chip" id="btn-orient" type="button">deitar o braço</button>
+        <button class="chip" id="btn-names" aria-pressed="true" type="button">notas apagadas</button>
+        <button class="chip" id="btn-sound" aria-pressed="true" type="button">som</button>
+        <span class="spacer"></span>
+        <button class="chip" id="btn-unpick" type="button" hidden>limpar seleção</button>
+        <button class="chip" id="btn-hear" type="button">ouvir</button>
+      </div>
+      <div class="board-wrap">
+        <div class="board" id="board" data-orient="v" role="group" aria-label="Braço do violão"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--c-root)"></i>tônica</span>
+        <span><i style="background:var(--c-third)"></i>terça</span>
+        <span><i style="background:var(--c-fifth)"></i>quinta</span>
+        <span><i style="background:var(--c-seventh)"></i>sexta / sétima</span>
+        <span><i style="background:var(--c-other)"></i>2ª, 4ª, 9ª</span>
+        <span>× corda não tocada</span>
+      </div>
+      <p class="hint" id="hint"></p>
+    </div>
+
+    <div id="extras">
+      <div class="card" id="card-field">
+        <h2 class="lbl">Campo harmônico <span id="field-key"></span></h2>
+        <div class="row tight" style="margin-bottom:8px">
+          <button class="chip on" id="btn-tri" type="button">tríades</button>
+          <button class="chip" id="btn-tet" type="button">tétrades</button>
+        </div>
+        <div class="field-list" id="field-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ RODAPÉ ============ -->
+  <div class="foot">
+    <div class="card">
+      <h2 class="lbl">Instrumento</h2>
+      <div class="grid2">
+        <div><label class="field" for="sel-tuning">Afinação</label><select id="sel-tuning"></select></div>
+        <div><label class="field" for="sel-frets">Casas</label><select id="sel-frets"></select></div>
+      </div>
+    </div>
+    <div class="card">
+      <details class="gloss">
+        <summary>O que cada palavra quer dizer</summary>
+        <dl>
+          <dt>Tônica e fundamental</dt>
+          <dd>Duas coisas diferentes que em português têm nomes diferentes, e vale usar. A <b>tônica</b> é o centro do tom — a nota que dá nome à escala e ao campo harmônico. A <b>fundamental</b> é a nota que dá nome a um acorde. No tom de dó maior, a tônica é dó do começo ao fim; o acorde do grau V tem fundamental sol. Escolher um grau do campo harmônico troca a fundamental e não mexe na tônica.</dd>
+          <dt>Grau</dt>
+          <dd>A distância da nota até a fundamental. <b>T</b> é a tônica, <b>3</b> terça maior, <b>♭3</b> terça menor, <b>♭7</b> sétima menor. O bemol ou sustenido avisa que o grau está um semitom fora do que a escala maior teria ali.</dd>
+          <dt>Tríade</dt>
+          <dd>Acorde de três notas: tônica, terça e quinta. A terça decide se é maior ou menor; a quinta decide se é justo, diminuto ou aumentado.</dd>
+          <dt>Tétrade</dt>
+          <dd>A tríade mais uma quarta nota, quase sempre a sétima. É ela que dá a cor: <b>maj7</b> soa suspenso, <b>7</b> pede resolução, <b>m7</b> soa neutro.</dd>
+          <dt>Forma</dt>
+          <dd>Uma digitação concreta do acorde. Leva o nome da corda que carrega a tônica, no sistema CAGED: forma de <b>mi</b> tem tônica na 6ª corda, forma de <b>lá</b> na 5ª, e assim por diante. A mesma forma serve para as doze tônicas, só desliza pelo braço.</dd>
+          <dt>Quinta omitida</dt>
+          <dd>Muita forma comum deixa a quinta de fora. Ela é a nota menos definidora do acorde, e o dedo é mais útil em outro lugar. Aparece riscada na composição.</dd>
+          <dt>Inversão</dt>
+          <dd>Quando a nota mais grave da forma não é a tônica. Muda o peso do acorde sem mudar o que ele é.</dd>
+          <dt>Campo harmônico</dt>
+          <dd>Os acordes que nascem de dentro da escala, empilhando notas de dois em dois graus. Em dó maior dá Dó, Ré menor, Mi menor, Fá, Sol, Lá menor e Si meio-diminuto — e mais nada.</dd>
+          <dt>Número romano</dt>
+          <dd>A posição do acorde na escala. Maiúsculo é maior, minúsculo é menor, <b>°</b> diminuto, <b>ø</b> meio-diminuto, <b>+</b> aumentado, <b>♭</b> na frente é grau abaixado.</dd>
+          <dt>Cifra e solfejo</dt>
+          <dd>Dó também se escreve <b>C</b>. Letra é cifra, usada para acorde; <b>Dó Ré Mi</b> é solfejo, usado para nomear nota. O botão de rótulo troca entre os dois e o modo grau.</dd>
+        </dl>
+      </details>
+    </div>
+  </div>
+</div>
+
+<script>
+/*==theory-start==*/
+/* ---------------------------------------------------------------
+   Núcleo teórico. Todo conjunto é uma lista de pares [grau, semitons]:
+   o grau manda na grafia (letra) e o semitom manda na casa (som).
+----------------------------------------------------------------*/
+const LETTERS = ['C','D','E','F','G','A','B'];
+const LETTER_PC = [0,2,4,5,7,9,11];
+const MAJ = [0,2,4,5,7,9,11];
+const SOLF = {C:'Dó',D:'Ré',E:'Mi',F:'Fá',G:'Sol',A:'Lá',B:'Si'};
+const SHARP_MAP = [[0,0],[0,1],[1,0],[1,1],[2,0],[3,0],[3,1],[4,0],[4,1],[5,0],[5,1],[6,0]];
+const FLAT_MAP  = [[0,0],[1,-1],[1,0],[2,-1],[2,0],[3,0],[4,-1],[4,0],[5,-1],[5,0],[6,-1],[6,0]];
+
+function accStr(a){ return a===0?'':(a>0?'♯'.repeat(a):'♭'.repeat(-a)); }
+function pcOf(letterIdx,acc){ return ((LETTER_PC[letterIdx]+acc)%12+12)%12; }
+
+function spell(rootLetter, rootPc, degree, semis){
+  const li  = (rootLetter + degree - 1) % 7;
+  const nat = LETTER_PC[li];
+  const tgt = ((rootPc + semis) % 12 + 12) % 12;
+  const acc = ((tgt - nat + 18) % 12) - 6;
+  return { letter: LETTERS[li], acc, pc: tgt, name: LETTERS[li] + accStr(acc) };
+}
+
+/* rótulo curto: T, 3, ♭3, ♯4, ♭7 ... (T de tônica) */
+function ivShort(degree, semis){
+  const base = degree > 7 ? MAJ[(degree-1)%7] + 12 : MAJ[degree-1];
+  const alt  = semis - base;
+  if (degree === 1 && alt === 0) return 'T';
+  return accStr(alt) + degree;
+}
+
+const IV_NAMES = {
+  '1|0':'tônica',
+  '2|-1':'segunda menor','2|0':'segunda maior',
+  '3|-1':'terça menor','3|0':'terça maior',
+  '4|0':'quarta justa','4|1':'quarta aumentada',
+  '5|-1':'quinta diminuta','5|0':'quinta justa','5|1':'quinta aumentada',
+  '6|-1':'sexta menor','6|0':'sexta maior',
+  '7|-2':'sétima diminuta','7|-1':'sétima menor','7|0':'sétima maior',
+  '9|0':'nona maior','9|-1':'nona menor'
+};
+function ivName(degree, semis){
+  const base = degree > 7 ? MAJ[(degree-1)%7] + 12 : MAJ[degree-1];
+  const alt  = semis - base;
+  return IV_NAMES[degree+'|'+alt] || (degree+'ª '+(alt>0?'aumentada':'diminuta'));
+}
+function fnOf(degree){
+  if (degree===1) return 'root';
+  if (degree===3) return 'third';
+  if (degree===5) return 'fifth';
+  if (degree===6||degree===7) return 'seventh';
+  return 'other';
+}
+
+/* Escala deixou de ser coisa que se desenha; sobrou como espécie do tom,
+   que é de onde o campo harmônico nasce. Só as de 7 notas servem pra isso,
+   então as pentatônicas, o blues e a cromática saíram junto com o modo.
+   Os modos gregos também: o campo de dórico é o de maior renumerado. */
+const SCALES = [
+  {id:'maior',      name:'maior',            deg:[[1,0],[2,2],[3,4],[4,5],[5,7],[6,9],[7,11]]},
+  {id:'menor',      name:'menor natural',    deg:[[1,0],[2,2],[3,3],[4,5],[5,7],[6,8],[7,10]]},
+  {id:'harmonica',  name:'menor harmônica',  deg:[[1,0],[2,2],[3,3],[4,5],[5,7],[6,8],[7,11]]},
+  {id:'melodica',   name:'menor melódica',   deg:[[1,0],[2,2],[3,3],[4,5],[5,7],[6,9],[7,11]]}
+];
+
+const CHORDS = [
+  {id:'maj',   name:'maior',            sym:'',        deg:[[1,0],[3,4],[5,7]]},
+  {id:'min',   name:'menor',            sym:'m',       deg:[[1,0],[3,3],[5,7]]},
+  {id:'dim',   name:'diminuto',         sym:'°',       deg:[[1,0],[3,3],[5,6]]},
+  {id:'aug',   name:'aumentado',        sym:'+',       deg:[[1,0],[3,4],[5,8]]},
+  {id:'sus2',  name:'sus2',             sym:'sus2',    deg:[[1,0],[2,2],[5,7]]},
+  {id:'sus4',  name:'sus4',             sym:'sus4',    deg:[[1,0],[4,5],[5,7]]},
+  {id:'maj7',  name:'maior com 7ª maior',sym:'maj7',   deg:[[1,0],[3,4],[5,7],[7,11]]},
+  {id:'7',     name:'dominante',        sym:'7',       deg:[[1,0],[3,4],[5,7],[7,10]]},
+  {id:'m7',    name:'menor com 7ª',     sym:'m7',      deg:[[1,0],[3,3],[5,7],[7,10]]},
+  {id:'m7b5',  name:'meio-diminuto',    sym:'m7♭5',    deg:[[1,0],[3,3],[5,6],[7,10]]},
+  {id:'dim7',  name:'diminuto de 4 sons',sym:'°7',     deg:[[1,0],[3,3],[5,6],[7,9]]},
+  {id:'mmaj7', name:'menor com 7ª maior',sym:'m(maj7)',deg:[[1,0],[3,3],[5,7],[7,11]]},
+  {id:'6',     name:'maior com 6ª',     sym:'6',       deg:[[1,0],[3,4],[5,7],[6,9]]},
+  {id:'m6',    name:'menor com 6ª',     sym:'m6',      deg:[[1,0],[3,3],[5,7],[6,9]]},
+  {id:'7sus4', name:'dominante sus4',   sym:'7sus4',   deg:[[1,0],[4,5],[5,7],[7,10]]},
+  {id:'add9',  name:'com nona',         sym:'add9',    deg:[[1,0],[3,4],[5,7],[9,14]]}
+];
+
+const TUNINGS = [
+  {id:'std',   name:'Padrão — mi lá ré sol si mi',              midi:[40,45,50,55,59,64]},
+  {id:'dropd', name:'Drop D — 6ª corda em ré',                  midi:[38,45,50,55,59,64]},
+  {id:'eb',    name:'Meio tom abaixo',                          midi:[39,44,49,54,58,63]},
+  {id:'dadgad',name:'DADGAD — ré lá ré sol lá ré',              midi:[38,45,50,55,57,62]},
+  {id:'openg', name:'Open G — sol maior aberto',                midi:[38,43,50,55,59,62]}
+];
+
+const TRIAD_NAMES = {'4,7':'', '3,7':'m', '3,6':'°', '4,8':'+', '2,7':'sus2', '5,7':'sus4'};
+const TETRA_NAMES = {
+  '4,7,11':'maj7', '4,7,10':'7', '3,7,10':'m7', '3,6,10':'m7♭5', '3,6,9':'°7',
+  '3,7,11':'m(maj7)', '4,8,11':'maj7♯5', '4,8,10':'7♯5', '4,6,10':'7♭5',
+  '3,7,9':'m6', '4,7,9':'6', '2,7,10':'7sus2', '5,7,10':'7sus4'
+};
+
+function harmonicField(scale, rootLetter, rootPc, tetrad){
+  if (scale.deg.length !== 7) return [];
+  const out = [];
+  for (let i=0;i<7;i++){
+    const idx  = tetrad ? [0,2,4,6] : [0,2,4];
+    const pick = idx.map(k => scale.deg[(i+k)%7]);
+    const base = pick[0][1];
+    const rel  = pick.map(p => ((p[1]-base)%12+12)%12);
+    const key  = rel.slice(1).join(',');
+    const sym  = (tetrad ? TETRA_NAMES : TRIAD_NAMES)[key];
+    const chordRoot = spell(rootLetter, rootPc, scale.deg[i][0], base);
+    const alt = scale.deg[i][1] - MAJ[i];
+    let num = ['I','II','III','IV','V','VI','VII'][i];
+    if (rel[1] === 3) num = num.toLowerCase();
+    /* ° é diminuto inteiro (7ª diminuta); com 7ª menor é meio-diminuto, ø */
+    if (rel[2] === 6) num += (tetrad && rel[3] === 10) ? 'ø' : '°';
+    if (rel[2] === 8) num += '+';
+    if (alt < 0) num = accStr(alt) + num;
+    const deg = pick.map((p,k) => [k===0 ? 1 : degreeFromStack(pick[0][0], p[0]), rel[k]]);
+    out.push({ num, sym: sym===undefined?'?':sym, root: chordRoot,
+               label: chordRoot.name + (sym===undefined?'?':sym), deg });
+  }
+  return out;
+}
+function degreeFromStack(rootDeg, otherDeg){
+  return ((otherDeg - rootDeg) % 7 + 7) % 7 + 1;
+}
+/*==theory-end==*/
+
+/*==voicing-start==*/
+/* ---------------------------------------------------------------
+   Formas móveis (CAGED). base = índice da corda que carrega a
+   tônica (0 = 6ª/mi grave). offs = casa de cada corda relativa à
+   casa da tônica; null = corda não tocada. Deslizar a forma pelo
+   braço transpõe o acorde sem mudar a digitação — é essa a graça.
+----------------------------------------------------------------*/
+const FORMS = {
+  maj:  [{n:'mi',base:0,offs:[0,2,2,1,0,0]},
+         {n:'lá',base:1,offs:[null,0,2,2,2,0]},
+         {n:'ré',base:2,offs:[null,null,0,2,3,2]},
+         {n:'dó',base:1,offs:[null,0,-1,-3,-2,-3]},
+         {n:'sol',base:0,offs:[0,-1,-3,-3,-3,0]}],
+  min:  [{n:'mi',base:0,offs:[0,2,2,0,0,0]},
+         {n:'lá',base:1,offs:[null,0,2,2,1,0]},
+         {n:'ré',base:2,offs:[null,null,0,2,3,1]}],
+  dim:  [{n:'mi',base:0,offs:[0,1,2,0,null,null]},
+         {n:'lá',base:1,offs:[null,0,1,2,1,null]},
+         {n:'ré',base:2,offs:[null,null,0,1,3,1]}],
+  aug:  [{n:'mi',base:0,offs:[0,null,2,1,1,null]},
+         {n:'lá',base:1,offs:[null,0,3,2,2,null]}],
+  sus2: [{n:'mi',base:0,offs:[0,2,4,4,0,0]},
+         {n:'lá',base:1,offs:[null,0,2,2,0,0]},
+         {n:'ré',base:2,offs:[null,null,0,2,3,0]}],
+  sus4: [{n:'mi',base:0,offs:[0,2,2,2,0,0]},
+         {n:'lá',base:1,offs:[null,0,2,2,3,0]},
+         {n:'ré',base:2,offs:[null,null,0,2,3,3]}],
+  maj7: [{n:'mi',base:0,offs:[0,null,1,1,0,null]},
+         {n:'lá',base:1,offs:[null,0,2,1,2,null]},
+         {n:'ré',base:2,offs:[null,null,0,2,2,2]},
+         {n:'dó',base:1,offs:[null,0,-1,-3,-3,-3]},
+         {n:'sol',base:0,offs:[0,-1,-3,-3,-3,-1]}],
+  '7':  [{n:'mi',base:0,offs:[0,2,0,1,0,0]},
+         {n:'lá',base:1,offs:[null,0,2,0,2,0]},
+         {n:'ré',base:2,offs:[null,null,0,2,1,2]},
+         {n:'dó',base:1,offs:[null,0,-1,0,-2,-3]},
+         {n:'sol',base:0,offs:[0,-1,-3,-3,-3,-2]}],
+  m7:   [{n:'mi',base:0,offs:[0,2,0,0,0,0]},
+         {n:'lá',base:1,offs:[null,0,2,0,1,0]},
+         {n:'ré',base:2,offs:[null,null,0,2,1,1]}],
+  m7b5: [{n:'mi',base:0,offs:[0,1,0,0,null,null]},
+         {n:'lá',base:1,offs:[null,0,1,0,1,null]},
+         {n:'ré',base:2,offs:[null,null,0,1,1,1]}],
+  dim7: [{n:'mi',base:0,offs:[0,1,2,0,2,null]},
+         {n:'lá',base:1,offs:[null,0,1,2,1,2]},
+         {n:'ré',base:2,offs:[null,null,0,1,0,1]}],
+  mmaj7:[{n:'mi',base:0,offs:[0,2,1,0,0,null]},
+         {n:'lá',base:1,offs:[null,0,2,1,1,null]},
+         {n:'ré',base:2,offs:[null,null,0,2,2,1]}],
+  '6':  [{n:'mi',base:0,offs:[0,2,2,1,2,0]},
+         {n:'lá',base:1,offs:[null,0,2,2,2,2]},
+         {n:'ré',base:2,offs:[null,null,0,2,0,2]}],
+  m6:   [{n:'mi',base:0,offs:[0,2,2,0,2,0]},
+         {n:'lá',base:1,offs:[null,0,2,2,1,2]},
+         {n:'ré',base:2,offs:[null,null,0,2,0,1]}],
+  '7sus4':[{n:'mi',base:0,offs:[0,2,0,2,0,0]},
+         {n:'lá',base:1,offs:[null,0,2,0,3,0]},
+         {n:'ré',base:2,offs:[null,null,0,2,1,3]}],
+  add9: [{n:'mi',base:0,offs:[0,2,4,1,0,null]},
+         {n:'dó',base:1,offs:[null,0,-1,-3,0,-3]}]
+};
+
+/* assinatura = classes de altura do acorde, sem a tônica repetida.
+   É a chave que liga um conjunto de pares às formas, sem depender do id. */
+function sigOf(pairs){
+  return [...new Set(pairs.map(p => ((p[1]%12)+12)%12))].sort((a,b)=>a-b).join(',');
+}
+const FORMS_BY_SIG = {};
+CHORDS.forEach(c => { if (FORMS[c.id]) FORMS_BY_SIG[sigOf(c.deg)] = FORMS[c.id]; });
+
+/* Uma forma resolvida tem casas absolutas. Só sobrevive se cada nota
+   que soa pertence ao acorde, a tônica está presente e a terça (ou a
+   2ª/4ª de um sus) e a sétima também. A quinta é dispensável. */
+function chordShapes(pairs, rootPc, tuning, maxFret){
+  const pcs = new Set(pairs.map(p => ((rootPc+p[1])%12+12)%12));
+  const need = new Set(pairs.filter(p => p[0]!==5).map(p => ((rootPc+p[1])%12+12)%12));
+  const forms = FORMS_BY_SIG[sigOf(pairs)] || [];
+  const found = [], seen = new Set();
+
+  forms.forEach(f => {
+    const r0 = ((rootPc - tuning[f.base]%12)%12+12)%12;
+    for (let oct=0; oct<3; oct++){
+      const rf = r0 + 12*oct;
+      const frets = f.offs.map(o => o===null ? null : rf+o);
+      const played = frets.filter(x => x!==null);
+      if (played.some(x => x < 0)) continue;
+      if (Math.max(...played) > maxFret) break;
+      if (!valid(frets, tuning, pcs, need, rootPc)) continue;
+      const key = frets.join(',');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      found.push({name:'forma de '+f.n, rootFret:rf, frets});
+    }
+  });
+  if (found.length) return rank(found, tuning);
+  return rank(searchShapes(pcs, need, rootPc, tuning, maxFret), tuning);
+}
+
+function valid(frets, tuning, pcs, need, rootPc){
+  const got = new Set();
+  const fretted = [];
+  let n = 0;
+  for (let s=0;s<6;s++){
+    if (frets[s]===null) continue;
+    const pc = (tuning[s]+frets[s])%12;
+    if (!pcs.has(pc)) return false;
+    got.add(pc); n++;
+    if (frets[s] > 0) fretted.push(frets[s]);
+  }
+  if (n < 3) return false;
+  /* alcance da mão: os dedos cobrem 4 casas seguidas, nada além.
+     Casa 0 não conta — corda solta não usa dedo. É isto que separa
+     uma forma de posição aberta de uma forma móvel de pestana. */
+  if (fretted.length && Math.max(...fretted) - Math.min(...fretted) > 3) return false;
+  if (!got.has(rootPc)) return false;
+  for (const pc of need) if (!got.has(pc)) return false;
+  return true;
+}
+
+/* Busca bruta, usada quando não existe forma catalogada (acorde
+   exótico do campo harmônico, ou afinação em que o CAGED não vale):
+   varre janelas de 4 casas e testa cordas contíguas. */
+function searchShapes(pcs, need, rootPc, tuning, maxFret){
+  const out = [], seen = new Set();
+  for (let low=0; low<=maxFret; low++){
+    const opts = tuning.map(o => {
+      const a = [null];
+      if (pcs.has(o%12)) a.push(0);
+      for (let f=Math.max(1,low); f<=Math.min(maxFret,low+3); f++)
+        if (pcs.has((o+f)%12)) a.push(f);
+      return a;
+    });
+    const cur = new Array(6).fill(null);
+    (function walk(s){
+      if (out.length > 60) return;
+      if (s === 6){
+        const played = cur.map((x,i)=>x===null?null:i).filter(x=>x!==null);
+        if (!played.length) return;
+        /* cordas tocadas têm de ser contíguas e a mais grave leva a tônica */
+        if (played[played.length-1]-played[0] !== played.length-1) return;
+        if ((tuning[played[0]]+cur[played[0]])%12 !== rootPc) return;
+        if (!valid(cur, tuning, pcs, need, rootPc)) return;
+        const key = cur.join(',');
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push({name:'busca', rootFret:cur[played[0]], frets:cur.slice()});
+        return;
+      }
+      for (const o of opts[s]){ cur[s]=o; walk(s+1); }
+      cur[s]=null;
+    })(0);
+  }
+  return out;
+}
+
+/* mais comum ≈ mais grave, com bônus para cordas soltas e mais notas */
+function rank(list, tuning){
+  const top = v => Math.max(...v.frets.filter(x=>x!==null));
+  const opens = v => v.frets.filter(x=>x===0).length;
+  const notes = v => v.frets.filter(x=>x!==null).length;
+  return list.slice().sort((a,b)=>
+    top(a)-top(b) || opens(b)-opens(a) || notes(b)-notes(a));
+}
+/*==voicing-end==*/
+
+/*==recog-start==*/
+/* ---------------------------------------------------------------
+   Reconhecimento reverso: dado um punhado de notas, que acorde é?
+   Cada entrada declara só os pares [grau, semitons]; a assinatura
+   usada na busca é derivada deles por sigOf(), então nunca podem
+   discordar entre si. A ordem da lista é a prioridade: em empate,
+   ganha a leitura mais corriqueira.
+----------------------------------------------------------------*/
+const RECOGNIZE = [
+  {sym:'',        name:'maior',                     deg:[[1,0],[3,4],[5,7]]},
+  {sym:'m',       name:'menor',                     deg:[[1,0],[3,3],[5,7]]},
+  {sym:'7',       name:'dominante',                 deg:[[1,0],[3,4],[5,7],[7,10]]},
+  {sym:'maj7',    name:'maior com 7ª maior',        deg:[[1,0],[3,4],[5,7],[7,11]]},
+  {sym:'m7',      name:'menor com 7ª',              deg:[[1,0],[3,3],[5,7],[7,10]]},
+  {sym:'°',       name:'diminuto',                  deg:[[1,0],[3,3],[5,6]]},
+  {sym:'+',       name:'aumentado',                 deg:[[1,0],[3,4],[5,8]]},
+  {sym:'sus4',    name:'com quarta suspensa',       deg:[[1,0],[4,5],[5,7]]},
+  {sym:'sus2',    name:'com segunda suspensa',      deg:[[1,0],[2,2],[5,7]]},
+  {sym:'m7♭5',    name:'meio-diminuto',             deg:[[1,0],[3,3],[5,6],[7,10]]},
+  {sym:'°7',      name:'diminuto de 4 sons',        deg:[[1,0],[3,3],[5,6],[7,9]]},
+  {sym:'m(maj7)', name:'menor com 7ª maior',        deg:[[1,0],[3,3],[5,7],[7,11]]},
+  {sym:'6',       name:'maior com 6ª',              deg:[[1,0],[3,4],[5,7],[6,9]]},
+  {sym:'m6',      name:'menor com 6ª',              deg:[[1,0],[3,3],[5,7],[6,9]]},
+  {sym:'7sus4',   name:'dominante com 4ª suspensa', deg:[[1,0],[4,5],[5,7],[7,10]]},
+  {sym:'add9',    name:'maior com nona',            deg:[[1,0],[3,4],[5,7],[9,14]]},
+  {sym:'7♭5',     name:'dominante de 5ª diminuta',  deg:[[1,0],[3,4],[5,6],[7,10]]},
+  {sym:'7♯5',     name:'dominante de 5ª aumentada', deg:[[1,0],[3,4],[5,8],[7,10]]},
+  {sym:'maj7♯5',  name:'maior com 7ª e 5ª aumentada',deg:[[1,0],[3,4],[5,8],[7,11]]},
+  {sym:'9',       name:'dominante com nona',        deg:[[1,0],[3,4],[5,7],[7,10],[9,14]]},
+  {sym:'maj9',    name:'maior com 7ª maior e nona', deg:[[1,0],[3,4],[5,7],[7,11],[9,14]]},
+  {sym:'m9',      name:'menor com nona',            deg:[[1,0],[3,3],[5,7],[7,10],[9,14]]},
+  {sym:'6/9',     name:'com sexta e nona',          deg:[[1,0],[3,4],[5,7],[6,9],[9,14]]},
+  {sym:'m6/9',    name:'menor com sexta e nona',    deg:[[1,0],[3,3],[5,7],[6,9],[9,14]]},
+  {sym:'m11',     name:'menor com décima primeira', deg:[[1,0],[3,3],[4,5],[5,7],[7,10]]},
+  {sym:'7♯9',     name:'dominante com nona aumentada',deg:[[1,0],[3,4],[5,7],[7,10],[9,15]]},
+  {sym:'7♭9',     name:'dominante com nona menor',  deg:[[1,0],[3,4],[5,7],[7,10],[9,13]]},
+  {sym:'add11',   name:'maior com quarta somada',   deg:[[1,0],[3,4],[4,5],[5,7]]},
+  {sym:'m(add9)', name:'menor com nona somada',      deg:[[1,0],[2,2],[3,3],[5,7]]},
+  {sym:'m(add11)',name:'menor com quarta somada',    deg:[[1,0],[3,3],[4,5],[5,7]]},
+  /* --- versões sem quinta: o violão omite a quinta o tempo todo --- */
+  {sym:'7',       name:'dominante, sem quinta',     deg:[[1,0],[3,4],[7,10]]},
+  {sym:'maj7',    name:'maior com 7ª maior, sem quinta', deg:[[1,0],[3,4],[7,11]]},
+  {sym:'m7',      name:'menor com 7ª, sem quinta',  deg:[[1,0],[3,3],[7,10]]},
+  {sym:'m(maj7)', name:'menor com 7ª maior, sem quinta',deg:[[1,0],[3,3],[7,11]]},
+  {sym:'6',       name:'maior com 6ª, sem quinta',  deg:[[1,0],[3,4],[6,9]]},
+  {sym:'m6',      name:'menor com 6ª, sem quinta',  deg:[[1,0],[3,3],[6,9]]},
+  {sym:'7♯9',     name:'dominante com nona aumentada, sem quinta',deg:[[1,0],[3,4],[7,10],[9,15]]},
+  {sym:'7sus4',   name:'dominante com 4ª, sem quinta',deg:[[1,0],[4,5],[7,10]]},
+  {sym:'add9',    name:'maior com nona, sem quinta', deg:[[1,0],[3,4],[9,14]]},
+  /* --- díades: o mínimo que ainda diz alguma coisa --- */
+  {sym:'5',       name:'só tônica e quinta',        deg:[[1,0],[5,7]]},
+  {sym:'(3)',     name:'só tônica e terça maior',   deg:[[1,0],[3,4]]},
+  {sym:'m(3)',    name:'só tônica e terça menor',   deg:[[1,0],[3,3]]},
+  {sym:'(4)',     name:'só tônica e quarta',        deg:[[1,0],[4,5]]},
+  {sym:'(6)',     name:'só tônica e sexta',         deg:[[1,0],[6,9]]},
+  {sym:'(7)',     name:'só tônica e sétima menor',  deg:[[1,0],[7,10]]},
+  {sym:'(2)',     name:'só tônica e segunda',        deg:[[1,0],[2,2]]}
+];
+
+const REC_BY_SIG = {};
+RECOGNIZE.forEach((e,i)=>{
+  const s = sigOf(e.deg);
+  if (!(s in REC_BY_SIG)) REC_BY_SIG[s] = Object.assign({}, e, {prio:i, sig:s});
+});
+
+/* Testa cada nota presente como candidata a tônica. Quem tem a tônica
+   no baixo ganha; se ninguém tem, a melhor leitura vira inversão.
+   {dó mi sol lá} é C6 com dó no baixo e Am7 com lá — mesma coleção,
+   nome diferente, e é o baixo que decide. */
+function identify(pcSet, bassPc){
+  const pcs = [...pcSet].sort((a,b)=>a-b);
+  if (pcs.length < 2) return [];
+  const out = [];
+  pcs.forEach(root => {
+    const sig = pcs.map(p => ((p-root)%12+12)%12).sort((a,b)=>a-b).join(',');
+    const e = REC_BY_SIG[sig];
+    if (e) out.push(Object.assign({}, e, {root, inv: root !== bassPc}));
+  });
+  out.sort((a,b) => (a.inv?1:0)-(b.inv?1:0) || a.prio-b.prio);
+  return out;
+}
+/*==recog-end==*/
+
+/* =========================================================
+   Estado
+========================================================= */
+const state = {
+  tuning: TUNINGS[0], frets: 12, orient: 'v',
+  acc: 'sharp', label: 'nota', showNames: true, sound: true,
+  kind: 'nota', scaleId: 'maior', chordId: 'maj7', adhoc: null,
+  /* TOM: centro tonal. Manda na escala, no campo harmônico e na escala
+     por trás. Só muda quando VOCÊ manda. */
+  keyPc: 0, keyLetter: 0, keyAcc: 0,
+  /* FUNDAMENTAL do acorde em exibição. Anda sozinha pelos graus do campo
+     harmônico sem arrastar o tom com ela. */
+  chordPc: 0, chordLetter: 0, chordAcc: 0,
+  adhocFrom: null,     // {idx, tet} — de qual grau do campo veio o acorde
+  picked: [],          // [{s,f}] — montagem à mão, só no modo acorde
+  tetrad: false, view: 'forma', formIdx: 0
+};
+const INLAY_SINGLE = [3,5,7,9,15,17,19,21];
+const INLAY_DOUBLE = [12,24];
+const GAUGE = [4,3.4,2.8,2.2,1.7,1.3];
+const DEG_FROM_SEMI = [1,2,2,3,3,4,5,5,6,6,7,7];
+
+function accMap(){ return state.acc==='sharp' ? SHARP_MAP : FLAT_MAP; }
+function pcName(pc){ const m = accMap()[pc]; return LETTERS[m[0]] + accStr(m[1]); }
+function solf(name){ return SOLF[name[0]] + name.slice(1); }
+function disp(name){ return state.label==='solfejo' ? solf(name) : name; }
+function cifra(rootName, sym){
+  if (!sym) return disp(rootName);
+  return disp(rootName) + (state.label==='solfejo' ? ' ' : '') + sym;
+}
+function isPicking(){ return state.kind==='acorde' && state.picked.length > 0; }
+function keyName(){ return LETTERS[state.keyLetter] + accStr(state.keyAcc); }
+function chordName(){ return LETTERS[state.chordLetter] + accStr(state.chordAcc); }
+function scaleObj(){ return SCALES.find(s=>s.id===state.scaleId); }
+
+/* =========================================================
+   Conjunto ativo
+========================================================= */
+function currentSet(){
+  if (isPicking()) return pickedSet();
+
+  let pairs, title, sub, chord=false, rl, rp;
+
+  if (state.kind === 'nota'){
+    pairs = [[1,0]]; rl = state.keyLetter; rp = state.keyPc;
+    title = disp(keyName()); sub = 'todas as ocorrências no braço';
+  } else if (state.adhoc){
+    pairs = state.adhoc.deg; rl = state.chordLetter; rp = state.chordPc; chord = true;
+    title = cifra(chordName(), state.adhoc.sym);
+    sub = state.adhoc.num ? 'grau '+state.adhoc.num+' — tom de '+disp(keyName())
+                          : state.adhoc.name;
+  } else {
+    const ch = CHORDS.find(c=>c.id===state.chordId);
+    pairs = ch.deg; rl = state.chordLetter; rp = state.chordPc; chord = true;
+    title = cifra(chordName(), ch.sym);
+    sub = ch.name+' — '+(ch.deg.length===3?'tríade':'tétrade');
+  }
+
+  const map = new Map(), tones = [];
+  pairs.forEach(([degree,semis])=>{
+    const sp = spell(rl, rp, degree, semis);
+    const info = { degree, semis, short: ivShort(degree,semis), fn: fnOf(degree),
+                   name: sp.name, pc: sp.pc,
+                   /* num acorde a nota 1 é a FUNDAMENTAL dele; tônica é do tom */
+                   iv: (chord && degree===1) ? 'fundamental do acorde' : ivName(degree,semis) };
+    if (!map.has(sp.pc)) map.set(sp.pc, info);
+    tones.push(info);
+  });
+  return { map, tones, title, sub, pairs, chord, picked:false };
+}
+
+/* montagem à mão: as notas são as que você clicou, e o nome vem
+   do reconhecimento reverso */
+function pickedSet(){
+  const notes = state.picked.map(p=>({s:p.s, f:p.f, m:midiAt(p.s,p.f)}))
+                            .sort((a,b)=>a.m-b.m);
+  const pcs = new Set(notes.map(n=>n.m%12));
+  const bass = notes[0].m % 12;
+  const cands = identify(pcs, bass);
+  const map = new Map(), tones = [];
+  let title, sub, ident = null;
+
+  if (cands.length){
+    ident = cands[0];
+    const m = accMap()[ident.root];
+    const rootName = LETTERS[m[0]] + accStr(m[1]);
+    ident.deg.forEach(([degree,semis])=>{
+      const sp = spell(m[0], ident.root, degree, semis);
+      const info = { degree, semis, short: ivShort(degree,semis), fn: fnOf(degree),
+                     name: sp.name, iv: ivName(degree,semis), pc: sp.pc };
+      if (!map.has(sp.pc)) map.set(sp.pc, info);
+      tones.push(info);
+    });
+    title = cifra(rootName, ident.sym) + (ident.inv ? '/'+disp(pcName(bass)) : '');
+    const alt = cands.slice(1,3).map(c=>cifra(pcName(c.root), c.sym)).join(', ');
+    sub = ident.name + ' — ' + notes.length + ' notas'
+        + (ident.inv ? ', inversão' : '')
+        + (alt ? ' · também se lê ' + alt : '');
+  } else {
+    pcs.forEach(pc=>{
+      const semis = ((pc-bass)%12+12)%12;
+      const degree = DEG_FROM_SEMI[semis];
+      map.set(pc, { degree, semis, short: ivShort(degree,semis), fn: fnOf(degree),
+                    name: pcName(pc), iv: ivName(degree,semis), pc });
+    });
+    const seen = new Set();
+    notes.forEach(n=>{ const pc=n.m%12;
+      if (!seen.has(pc)){ seen.add(pc); tones.push(map.get(pc)); } });
+    title = notes.map(n=>disp(pcName(n.m%12))).join(' ');
+    sub = notes.length===1 ? 'uma nota — clique mais casas para montar um acorde'
+        : 'não bate com nenhum acorde do dicionário — graus contados do baixo';
+  }
+  return { map, tones, title, sub, chord:true, picked:true, notes, bass, ident };
+}
+
+let shapeCache = null;
+function shapes(set){
+  if (!set.chord || set.picked) return [];
+  if (shapeCache && shapeCache.key === cacheKey()) return shapeCache.list;
+  const list = chordShapes(set.pairs, state.chordPc, state.tuning.midi, state.frets);
+  shapeCache = { key: cacheKey(), list };
+  return list;
+}
+function cacheKey(){
+  return [state.chordPc, state.kind, state.chordId,
+          state.adhoc ? (state.adhoc.sig||state.adhoc.num) : '-',
+          state.tuning.id, state.frets].join('|');
+}
+
+/* =========================================================
+   Braço
+========================================================= */
+const board = document.getElementById('board');
+let cells = [];
+let focusPos = {s:0,f:0};
+
+function buildBoard(){
+  board.innerHTML = '';
+  board.dataset.orient = state.orient;
+  cells = [];
+  for (let f=0; f<=state.frets; f++){
+    const lab = document.createElement('div');
+    lab.className = 'cell axis' + (INLAY_SINGLE.includes(f)||INLAY_DOUBLE.includes(f) ? ' mark':'');
+    lab.textContent = f;
+    place(lab, -1, f);
+    board.appendChild(lab);
+  }
+  for (let s=0; s<6; s++){
+    for (let f=0; f<=state.frets; f++){
+      const cell = document.createElement('div');
+      cell.className = 'cell ' + (f===0 ? 'open' : 'wood') + (f===1 ? ' nutside':'');
+      place(cell, s, f);
+      const str = document.createElement('div');
+      str.className = 'str';
+      str.style.setProperty('--g', GAUGE[s]+'px');
+      cell.appendChild(str);
+      if (f>0 && ((INLAY_SINGLE.includes(f) && s===2) ||
+                  (INLAY_DOUBLE.includes(f) && (s===1 || s===3)))){
+        const inl = document.createElement('div');
+        inl.className = 'inlay';
+        cell.appendChild(inl);
+      }
+      const dot = document.createElement('button');
+      dot.type='button'; dot.className='dot';
+      dot.dataset.s=s; dot.dataset.f=f; dot.tabIndex=-1;
+      dot.addEventListener('click', ()=>onPick(s,f));
+      dot.addEventListener('focus', ()=>{ focusPos={s,f}; });
+      cell.appendChild(dot);
+      board.appendChild(cell);
+      cells.push(dot);
+    }
+  }
+  paint();
+}
+board.addEventListener('keydown', onKey);
+
+function place(el, s, f){
+  if (state.orient === 'v'){
+    /* de frente para o instrumento: pestana em cima, mi grave à esquerda */
+    el.style.gridRow = (f+1);
+    el.style.gridColumn = s < 0 ? 1 : (s+2);
+  } else {
+    /* a MESMA vista girada no sentido do relógio: a borda de cima (pestana)
+       vai para a direita e a borda esquerda (mi grave) vai para cima.
+       Inverter só um dos eixos daria um espelho — ou seja, um braço canhoto. */
+    el.style.gridColumn = state.frets + 1 - f;
+    el.style.gridRow = s < 0 ? 7 : (s+1);
+  }
+}
+function midiAt(s,f){ return state.tuning.midi[s] + f; }
+function pcAt(s,f){ return midiAt(s,f) % 12; }
+
+function paint(){
+  const set   = currentSet();
+  const list  = shapes(set);
+  const shape = (!set.picked && set.chord && state.view==='forma' && list.length)
+                ? list[Math.min(state.formIdx, list.length-1)] : null;
+  const marks = new Set(), usedStr = new Set();
+  if (set.picked) state.picked.forEach(p=>{ marks.add(p.s+':'+p.f); usedStr.add(p.s); });
+
+  cells.forEach(dot=>{
+    const s = +dot.dataset.s, f = +dot.dataset.f;
+    const pc  = pcAt(s,f);
+    const hit = set.map.get(pc);
+    let on, muted = false;
+    if (set.picked){ on = marks.has(s+':'+f); muted = !usedStr.has(s); }
+    else if (shape){ on = shape.frets[s]===f; muted = shape.frets[s]===null; }
+    else { on = !!hit; }
+
+    dot.className = 'dot';
+    dot.parentElement.classList.toggle('muted', muted);
+    let txt;
+    if (on && hit){
+      dot.classList.add('on', hit.fn);
+      txt = state.label==='intervalo' ? hit.short
+          : state.label==='solfejo'   ? solf(hit.name) : hit.name;
+    } else if (f===0 && muted){
+      dot.classList.add('x'); txt = '×';
+    } else {
+      const nm = pcName(pc);
+      txt = state.label==='solfejo' ? solf(nm) : nm;
+      if (!state.showNames) dot.classList.add('hide');
+    }
+    dot.textContent = txt;
+    dot.setAttribute('aria-label',
+      `${pcName(pc)}, corda ${6-s}, casa ${f}` + (on && hit ? ` — ${hit.short}` : ''));
+    dot.setAttribute('aria-pressed', on ? 'true' : 'false');
+    dot.tabIndex = (s===focusPos.s && f===focusPos.f) ? 0 : -1;
+  });
+
+  drawComp(set, list, shape);
+  drawField();
+  drawHint();
+  syncTools();
+  syncControls();
+}
+
+/* =========================================================
+   Interação
+========================================================= */
+function onPick(s,f){
+  if (state.kind === 'acorde'){
+    /* uma nota por corda: o dedo que já estava nessa corda se muda de casa */
+    const i = state.picked.findIndex(p=>p.s===s);
+    if (i >= 0){
+      if (state.picked[i].f === f) state.picked.splice(i,1);
+      else state.picked[i] = {s,f};
+    } else {
+      state.picked.push({s,f});
+    }
+    if (state.sound) pluck(midiAt(s,f));
+    paint();
+    return;
+  }
+  setKey(pcAt(s,f));
+  if (state.sound) pluck(midiAt(s,f));
+  paint();
+}
+/* mudar de tom recoloca o acorde na nova tônica: manter a fundamental
+   antiga num tom novo não quer dizer nada */
+function setKey(pc){
+  const m = accMap()[pc];
+  state.keyLetter=m[0]; state.keyAcc=m[1]; state.keyPc=pc;
+  state.chordLetter=m[0]; state.chordAcc=m[1]; state.chordPc=pc;
+  state.adhoc=null; state.adhocFrom=null; state.formIdx=0;
+}
+/* clicar um grau do campo move SÓ a fundamental do acorde */
+function setChordFromField(ch, idx, tet){
+  state.chordLetter = LETTERS.indexOf(ch.root.letter);
+  state.chordAcc = ch.root.acc; state.chordPc = ch.root.pc;
+  state.adhoc = ch; state.adhocFrom = {idx, tet};
+  state.formIdx = 0; state.view = 'forma';
+}
+/* troca de grafia: reescreve tom e acorde sem trocar nenhuma altura */
+function respell(){
+  const km = accMap()[state.keyPc];
+  state.keyLetter=km[0]; state.keyAcc=km[1];
+  if (state.adhocFrom){
+    const f = harmonicField(scaleObj(), state.keyLetter, state.keyPc, state.adhocFrom.tet);
+    const m = f[state.adhocFrom.idx];
+    if (m){ state.adhoc=m; state.chordLetter=LETTERS.indexOf(m.root.letter);
+            state.chordAcc=m.root.acc; state.chordPc=m.root.pc; return; }
+  }
+  const cm = accMap()[state.chordPc];
+  state.chordLetter=cm[0]; state.chordAcc=cm[1];
+  if (state.adhoc) state.adhoc.root = {letter:LETTERS[cm[0]], acc:cm[1],
+    pc:state.chordPc, name:LETTERS[cm[0]]+accStr(cm[1])};
+}
+function clearPick(){ state.picked = []; }
+function onKey(e){
+  const keys=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'];
+  if(!keys.includes(e.key)) return;
+  e.preventDefault();
+  let {s,f}=focusPos;
+  const v = state.orient==='v';
+  if(e.key==='ArrowUp')    v ? f-- : s--;
+  if(e.key==='ArrowDown')  v ? f++ : s++;
+  if(e.key==='ArrowLeft')  v ? s-- : f++;
+  if(e.key==='ArrowRight') v ? s++ : f--;
+  s=Math.max(0,Math.min(5,s)); f=Math.max(0,Math.min(state.frets,f));
+  /* tabindex móvel: a casa que sai de foco tem de devolver o -1, senão o
+     Tab passa a parar em duas casas ao mesmo tempo */
+  const prev = cells.find(d=>+d.dataset.s===focusPos.s && +d.dataset.f===focusPos.f);
+  if (prev) prev.tabIndex = -1;
+  focusPos={s,f};
+  const el = cells.find(d=>+d.dataset.s===s && +d.dataset.f===f);
+  if(el){ el.tabIndex=0; el.focus(); }
+}
+
+/* =========================================================
+   Composição
+========================================================= */
+function drawComp(set, list, shape){
+  const box = document.getElementById('composicao');
+  const where = new Map();
+  if (set.picked){
+    state.picked.forEach(p=>{ const pc=pcAt(p.s,p.f);
+      if(!where.has(pc)) where.set(pc,[]); where.get(pc).push(6-p.s); });
+  } else if (shape){
+    for (let s=0;s<6;s++){ if (shape.frets[s]===null) continue;
+      const pc=pcAt(s,shape.frets[s]);
+      if(!where.has(pc)) where.set(pc,[]); where.get(pc).push(6-s); }
+  }
+  const showWhere = !!(set.picked || shape);
+
+  let rows = '';
+  (set.tones||[]).forEach(t=>{
+    const has = where.has(t.pc);
+    const w = showWhere ? (has ? where.get(t.pc).sort((a,b)=>a-b).map(n=>n+'ª').join(', ') : 'omitida') : '';
+    rows += `<tr class="${!showWhere||has?'':'off'}">
+      <td class="deg"><span class="pill ${t.fn}">${t.short}</span></td>
+      <td class="note">${state.label==='solfejo'?solf(t.name):t.name}</td>
+      <td class="iv">${t.iv}</td>
+      ${showWhere?`<td class="where">${w}</td>`:''}</tr>`;
+  });
+
+  let voice = '';
+  const seq = set.picked ? set.notes.map(n=>n.m)
+            : shape ? shape.frets.map((f,s)=>f===null?null:midiAt(s,f)).filter(x=>x!==null).sort((a,b)=>a-b)
+            : null;
+  if (seq && seq.length>1){
+    const names = seq.map(m=>disp(pcName(m%12))).join(' ');
+    const bass = seq[0]%12;
+    const inv = set.picked ? (set.ident && set.ident.inv) : (bass !== state.chordPc);
+    voice = `<div class="voice">De baixo pra cima: <b>${names}</b>`
+          + (inv ? ' — inversão' : '') + `</div>`;
+  }
+
+  let actions = '';
+  if (set.picked){
+    let extra = '';
+    if (set.ident){
+      extra = `<button class="chip" type="button" data-act="formas">ver formas de ${
+        cifra(pcName(set.ident.root), set.ident.sym)}</button>`;
+    }
+    actions = `<div class="forms"><h3>Sua montagem — ${state.picked.length} corda(s)</h3>
+      <div class="row tight">
+        <button class="chip" type="button" data-act="tocar">tocar seleção</button>
+        <button class="chip" type="button" data-act="limpar">limpar seleção</button>
+        ${extra}
+      </div></div>`;
+  } else if (set.chord){
+    let chips = '';
+    if (!list.length){
+      chips = `<span style="font-size:12.5px;color:var(--ink-soft)">
+        Nenhuma forma cabe em ${state.frets} casas nessa afinação.</span>`;
+    } else {
+      list.slice(0,6).forEach((v,i)=>{
+        const on = state.view==='forma' && i===Math.min(state.formIdx,list.length-1);
+        const op = v.frets.filter(x=>x===0).length;
+        chips += `<button class="chip" type="button" data-form="${i}" aria-pressed="${on}"
+          title="${v.name}, tônica na casa ${v.rootFret}">${v.name.replace('forma de ','')} · ${
+          v.rootFret}ª${op?' <span class="op">○</span>':''}</button>`;
+      });
+    }
+    chips += `<button class="chip" type="button" data-form="todo"
+      aria-pressed="${state.view==='todo'}">braço todo</button>`;
+    if (shape) chips += `<button class="chip" type="button" data-act="editar">editar esta forma</button>`;
+    actions = `<div class="forms"><h3>Forma no braço</h3><div class="row tight">${chips}</div></div>`;
+  }
+
+  box.innerHTML = `<div class="head"><div class="name">${set.title}</div>
+      <div class="sub">${set.sub}</div></div>
+    <table class="tones">${rows}</table>${voice}${actions}`;
+
+  box.querySelectorAll('[data-form]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      if (b.dataset.form === 'todo') state.view='todo';
+      else { state.view='forma'; state.formIdx = +b.dataset.form; }
+      paint(); if (state.sound) hearSet();
+    });
+  });
+  box.querySelectorAll('[data-act]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const a = b.dataset.act;
+      if (a === 'tocar'){ state.sound=true; syncSound(); hearSet(); return; }
+      if (a === 'limpar'){ clearPick(); paint(); return; }
+      if (a === 'editar' && shape){
+        state.picked = shape.frets.map((f,s)=>f===null?null:{s,f}).filter(Boolean);
+        paint(); return;
+      }
+      if (a === 'formas' && set.ident){
+        const m = accMap()[set.ident.root];
+        state.chordLetter=m[0]; state.chordAcc=m[1]; state.chordPc=set.ident.root;
+        state.adhocFrom = null;
+        state.adhoc = { num:null, sym:set.ident.sym, name:set.ident.name, sig:set.ident.sig,
+                        root:{letter:LETTERS[m[0]], acc:m[1], pc:set.ident.root,
+                              name:LETTERS[m[0]]+accStr(m[1])}, deg:set.ident.deg };
+        clearPick(); state.view='forma'; state.formIdx=0;
+        paint(); if (state.sound) hearSet();
+      }
+    });
+  });
+}
+
+function syncTools(){
+  const b = document.getElementById('btn-unpick');
+  const n = state.picked.length;
+  b.hidden = state.kind !== 'acorde';
+  b.disabled = n === 0;
+  b.textContent = n ? 'limpar seleção ('+n+')' : 'limpar seleção';
+}
+
+function drawHint(){
+  const h = document.getElementById('hint');
+  if (state.kind === 'acorde'){
+    h.innerHTML = 'No modo acorde o braço é mesa de montagem: cada clique acende só '
+      + 'aquela casa, e uma corda só aceita uma casa por vez — clicar em outra casa da mesma '
+      + 'corda muda o dedo de lugar. O nome no topo é reconhecido a partir do que você montou. '
+      + 'Para desfazer, <em>limpar seleção</em> na barra acima do braço, ou a tecla '
+      + '<kbd>Esc</kbd>. Os botões de tônica trocam o tom; escolher um grau do campo '
+      + 'harmônico move só a fundamental do acorde e deixa o tom onde está.';
+  } else {
+    h.innerHTML = 'Clique numa casa e todas as notas iguais acendem no braço inteiro. '
+      + 'Setas do teclado andam pelo braço, <kbd>Enter</kbd> escolhe.';
+  }
+}
+
+function drawField(){
+  const card = document.getElementById('card-field');
+  const list = document.getElementById('field-list');
+  const sc = scaleObj();
+  document.getElementById('field-key').textContent =
+    '— tom de ' + disp(keyName()) + ' ' + sc.name.toLowerCase();
+  const field = harmonicField(sc, state.keyLetter, state.keyPc, state.tetrad);
+  list.innerHTML = '';
+  field.forEach((ch,idx)=>{
+    const b = document.createElement('button');
+    b.type='button';
+    b.className = 'deg-btn' + (!isPicking() && state.adhocFrom
+      && state.adhocFrom.idx===idx && state.adhocFrom.tet===state.tetrad ? ' on':'');
+    b.innerHTML = `<span class="num">${ch.num}</span><span class="chd">${cifra(ch.root.name,ch.sym)}</span>`;
+    b.addEventListener('click', ()=>{
+      state.kind='acorde'; clearPick();
+      setChordFromField(ch, idx, state.tetrad);
+      paint(); if (state.sound) hearSet();
+    });
+    list.appendChild(b);
+  });
+  document.getElementById('btn-tri').classList.toggle('on', !state.tetrad);
+  document.getElementById('btn-tet').classList.toggle('on', state.tetrad);
+}
+
+/* =========================================================
+   Som — corda pinçada por Karplus-Strong
+========================================================= */
+let ac = null;
+const bufCache = new Map();
+function audio(){
+  if (!ac){
+    const C = window.AudioContext || window.webkitAudioContext;
+    if (!C) return null;
+    ac = new C();
+  }
+  if (ac.state === 'suspended') ac.resume();
+  return ac;
+}
+function stringBuffer(freq){
+  const key = Math.round(freq*4);
+  if (bufCache.has(key)) return bufCache.get(key);
+  const sr = ac.sampleRate;
+  const n = Math.max(2, Math.round(sr/freq));
+  const len = Math.floor(sr*2.4);
+  const buf = ac.createBuffer(1,len,sr);
+  const out = buf.getChannelData(0);
+  const dl = new Float32Array(n);
+  let last=0;
+  for (let i=0;i<n;i++){ const w=Math.random()*2-1; last=0.65*last+0.35*w; dl[i]=last; }
+  let peak=0; for (let i=0;i<n;i++) peak=Math.max(peak,Math.abs(dl[i]));
+  if (peak>0) for (let i=0;i<n;i++) dl[i]/=peak;
+  const decay=0.996; let idx=0;
+  for (let i=0;i<len;i++){
+    const cur=dl[idx], nxt=dl[(idx+1)%n];
+    out[i]=cur; dl[idx]=(cur+nxt)*0.5*decay; idx=(idx+1)%n;
+  }
+  const fade=Math.floor(sr*0.25);
+  for (let i=0;i<fade;i++) out[len-1-i]*=i/fade;
+  bufCache.set(key,buf);
+  return buf;
+}
+function pluck(midi, when=0, gain=0.2){
+  if (!state.sound || !audio()) return;
+  const src = ac.createBufferSource();
+  src.buffer = stringBuffer(440*Math.pow(2,(midi-69)/12));
+  const g = ac.createGain(); g.gain.value = gain;
+  src.connect(g).connect(ac.destination);
+  src.start(ac.currentTime + when);
+}
+/* montagem ou forma: rasga as cordas de verdade, do grave pro agudo.
+   sem nada disso: arpeja o conjunto abstrato */
+function hearSet(){
+  if (!audio()) return;
+  const set = currentSet();
+  if (set.picked){
+    set.notes.forEach((n,i)=> pluck(n.m, i*0.045, 0.17));
+    return;
+  }
+  const list = shapes(set);
+  const shape = (set.chord && state.view==='forma' && list.length)
+                ? list[Math.min(state.formIdx,list.length-1)] : null;
+  if (shape){
+    let t=0;
+    for (let s=0;s<6;s++){
+      if (shape.frets[s]===null) continue;
+      pluck(midiAt(s,shape.frets[s]), t, 0.17); t += 0.045;
+    }
+    return;
+  }
+  const order = (set.tones||[]).map(t=>t.pc);
+  if (!order.length) return;
+  let m = lowestMidi(order[0]);
+  pluck(m,0);
+  let t=0.13;
+  for (let i=1;i<order.length;i++){
+    m += ((order[i]-m%12)%12+12)%12 || 12;
+    pluck(m,t); t+=0.13;
+  }
+}
+function lowestMidi(pc){
+  let best=Infinity;
+  for (let s=0;s<6;s++){
+    const open=state.tuning.midi[s];
+    const f=((pc-open%12)%12+12)%12;
+    if (f<=state.frets) best=Math.min(best,open+f);
+  }
+  return best===Infinity ? 48+pc : best;
+}
+
+/* =========================================================
+   Controles
+========================================================= */
+function fill(sel, items, val){
+  sel.innerHTML = items.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
+  sel.value = val;
+}
+const selKey=document.getElementById('sel-key');
+const selChord=document.getElementById('sel-chord');
+const selTun=document.getElementById('sel-tuning');
+const selFret=document.getElementById('sel-frets');
+fill(selKey, SCALES, state.scaleId);
+fill(selChord, CHORDS.map(c=>({id:c.id, name:c.sym ? c.sym+' — '+c.name : 'maior (tríade)'})), state.chordId);
+fill(selTun, TUNINGS, 'std');
+fill(selFret, [{id:'12',name:'12 casas'},{id:'15',name:'15 casas'},{id:'22',name:'22 casas'}], '12');
+
+/* Dó maior e dó menor são tons diferentes, então trocar a espécie conta
+   como trocar de tom: o acorde volta pra tônica, pelo mesmo motivo que
+   voltaria se você trocasse a nota. O grau de onde ele veio pode nem
+   existir no campo novo. */
+selKey.addEventListener('change', e=>{
+  state.scaleId = e.target.value;
+  setKey(state.keyPc);
+  paint(); });
+selChord.addEventListener('change', e=>{
+  state.chordId=e.target.value; state.kind='acorde'; state.adhoc=null; state.adhocFrom=null;
+  clearPick(); state.formIdx=0; state.view='forma';
+  paint(); if(state.sound) hearSet(); });
+selTun.addEventListener('change', e=>{
+  state.tuning=TUNINGS.find(t=>t.id===e.target.value); state.formIdx=0; paint(); });
+selFret.addEventListener('change', e=>{
+  state.frets=+e.target.value; state.formIdx=0;
+  state.picked = state.picked.filter(p=>p.f<=state.frets);
+  focusPos={s:0,f:0}; buildBoard(); });
+
+const rootsBox=document.getElementById('roots');
+function buildRoots(){
+  const map = accMap();
+  rootsBox.innerHTML='';
+  for (let pc=0;pc<12;pc++){
+    const nm = LETTERS[map[pc][0]] + accStr(map[pc][1]);
+    const b=document.createElement('button');
+    b.type='button'; b.className='chip';
+    b.textContent = state.label==='solfejo' ? solf(nm) : nm;
+    b.addEventListener('click', ()=>{
+      clearPick(); setKey(pc); paint();
+      if (state.sound && state.kind!=='nota') hearSet(); });
+    rootsBox.appendChild(b);
+  }
+}
+document.querySelectorAll('[data-kind]').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    state.kind=b.dataset.kind; state.adhoc=null; state.adhocFrom=null; clearPick();
+    state.formIdx=0; state.view='forma';
+    paint(); if (state.sound && state.kind!=='nota') hearSet(); });
+});
+const btn = id => document.getElementById(id);
+function syncSound(){
+  btn('btn-sound').setAttribute('aria-pressed',String(state.sound));
+  btn('btn-sound').textContent = state.sound?'som':'sem som';
+}
+btn('btn-orient').addEventListener('click', ()=>{
+  state.orient = state.orient==='v'?'h':'v';
+  btn('btn-orient').textContent = state.orient==='v'?'deitar o braço':'levantar o braço';
+  buildBoard(); });
+btn('btn-names').addEventListener('click', ()=>{
+  state.showNames=!state.showNames;
+  btn('btn-names').setAttribute('aria-pressed',String(state.showNames));
+  btn('btn-names').textContent = state.showNames?'notas apagadas':'só o conjunto';
+  paint(); });
+btn('btn-sound').addEventListener('click', ()=>{ state.sound=!state.sound; syncSound(); });
+btn('btn-hear').addEventListener('click', ()=>{ state.sound=true; syncSound(); hearSet(); });
+btn('btn-unpick').addEventListener('click', ()=>{ clearPick(); paint(); });
+/* Esc limpa a montagem de qualquer lugar. Ignoro quando o foco está num
+   select, senão fechar a lista com Esc apagaria a seleção sem querer. */
+document.addEventListener('keydown', e=>{
+  if (e.key !== 'Escape' || !isPicking()) return;
+  if (e.target && e.target.tagName === 'SELECT') return;
+  clearPick(); paint();
+});
+btn('btn-acc').addEventListener('click', ()=>{
+  state.acc = state.acc==='sharp'?'flat':'sharp';
+  btn('btn-acc').textContent = state.acc==='sharp'?'sustenidos':'bemóis';
+  respell(); buildRoots(); paint(); });
+btn('btn-label').addEventListener('click', ()=>{
+  state.label = state.label==='nota'?'intervalo':state.label==='intervalo'?'solfejo':'nota';
+  btn('btn-label').textContent = 'rótulo: '+state.label;
+  buildRoots(); paint(); });
+btn('btn-clear').addEventListener('click', ()=>{
+  clearPick(); state.adhoc=null; state.adhocFrom=null; state.kind='nota';
+  state.formIdx=0; paint(); });
+btn('btn-tri').addEventListener('click', ()=>{ state.tetrad=false; drawField(); });
+btn('btn-tet').addEventListener('click', ()=>{ state.tetrad=true; drawField(); });
+
+function syncControls(){
+  document.querySelectorAll('[data-kind]').forEach(b=>{
+    b.setAttribute('aria-pressed', String(b.dataset.kind===state.kind)); });
+  [...rootsBox.children].forEach((b,pc)=>{
+    /* o tom segue valendo enquanto você monta à mão — a montagem mexe
+       no acorde, não no centro tonal, então o botão continua marcado */
+    b.setAttribute('aria-pressed', String(pc===state.keyPc)); });
+}
+
+buildRoots();
+buildBoard();
+
+</script>
+</body>
+</html>

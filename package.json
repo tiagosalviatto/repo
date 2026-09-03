@@ -1,0 +1,13 @@
+{
+  "name": "braco",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Explorador de braço de violão: notas, acordes, formas e campo harmônico",
+  "scripts": {
+    "test": "node tests/run.js",
+    "serve": "python3 -m http.server 8000"
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  }
+}
