@@ -21,13 +21,16 @@ const EXPORTS = [
   'ivShort','IV_NAMES','ivName','fnOf','SCALES','CHORDS','TUNINGS',
   'TRIAD_NAMES','TETRA_NAMES','harmonicField','degreeFromStack',
   'FORMS','sigOf','FORMS_BY_SIG','chordShapes','valid','searchShapes','rank',
-  'RECOGNIZE','REC_BY_SIG','identify'
+  'RECOGNIZE','REC_BY_SIG','identify',
+  'hzOfMidi','centsBetween','tuneTargets','rmsOf','ncorr','detectNear','medianOf',
+  'arcIndex','TUNE_SPAN_CENTS','TUNE_OK_CENTS','TUNE_MIN_RMS','TUNE_MIN_CLARITY',
+  'TUNE_ATTACK_MS','TUNE_HIST','TUNE_SEGMENTS','TUNE_ARC_SPAN'
 ];
 
 let cache = null;
 function engine(){
   if (cache) return cache;
-  const code = ['theory','voicing','recog'].map(block).join('\n')
+  const code = ['theory','voicing','recog','tuner'].map(block).join('\n')
              + '\nmodule.exports = {' + EXPORTS.join(',') + '};';
   const m = { exports: {} };
   new Function('module', 'console', code)(m, console);

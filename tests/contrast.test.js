@@ -32,6 +32,14 @@ console.log('\n[Y] Cada fundo do braço tem pelo menos uma camada acima de 3:1')
   const a=ratio(bone,bg), b=ratio(over(ink,.85,bg),bg);
   eq(ok3(Math.max(a,b)), true, n+': melhor camada dá '+Math.max(a,b).toFixed(2)+':1');
 });
+console.log('\n[ZA] O traço aceso do afinador vive sobre painel claro');
+/* nenhum acento da paleta chega a 3:1 sobre o painel — o azul-petróleo dá
+   2,67:1 — então o traço aceso é --ink e a cor entra só como reforço do que
+   o texto embaixo do arco já diz por escrito. */
+eq(ok3(ratio(ink,panel)), true, 'traço aceso em --ink sobre painel: '+ratio(ink,panel).toFixed(2)+':1');
+eq(/\.arci\.on::before\{background:var\(--ink\)/.test(css.replace(/\s+/g,'')), true,
+   'e a regra do arco usa mesmo var(--ink), não um acento');
+
 console.log('\n[Z] O anel antigo, escuro sobre madeira, era de fato invisível');
 eq(ratio(ink,wood2)<1.1, true, 'anel antigo dava '+ratio(ink,wood2).toFixed(2)+':1 — era isso que você via');
 console.log(fail? '\n>>> '+fail+' falha(s)':'\n>>> todos passaram');

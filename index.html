@@ -203,6 +203,39 @@ kbd{background:var(--panel-2);border:1px solid var(--hair);border-bottom-width:2
 
 .foot{display:grid;gap:14px;margin-top:22px}
 @media (min-width:800px){.foot{grid-template-columns:minmax(250px,320px) 1fr}}
+/* ---- afinador ----
+   Vive dentro do cartão Instrumento porque é o mesmo assunto do dropdown
+   de Afinação, que é de onde saem os seis alvos. */
+.tuner{border-top:1px solid var(--hair);margin-top:12px;padding-top:11px}
+.tuner h3{margin:0 0 7px;font-size:12.5px;font-weight:600;color:var(--ink-soft)}
+.tuner .row{justify-content:center}
+/* seis cordas em seis colunas, como os doze botões de tônica: em fila livre
+   elas quebram 5+1 e a última fica órfã no meio da linha de baixo */
+#tuner-strings{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+#tuner-strings .chip{padding:7px 0;text-align:center;font-size:12.5px}
+/* o arco: cada traço é uma haste invisível de altura fixa, girando em volta
+   da base. Só a ponta é pintada, então girar a haste espalha as pontas por
+   uma circunferência sem uma linha de trigonometria em JS. */
+.arc{position:relative;width:100%;max-width:236px;height:104px;margin:12px auto 2px}
+.arc i{position:absolute;left:50%;top:0;width:5px;height:104px;margin-left:-2.5px;
+  transform-origin:50% 100%}
+.arc i::before{content:'';display:block;width:5px;height:13px;border-radius:3px;
+  background:var(--hair);transition:background-color .09s linear,height .09s linear}
+.arc i.mid::before{height:17px;background:var(--ink-soft);opacity:.5}
+/* o traço aceso é --ink (8,4:1 sobre o painel), não uma cor de acento:
+   nenhum acento da paleta chega a 3:1 sobre fundo claro. A cor entra só
+   como reforço redundante do que o texto embaixo já diz. */
+.arc i.on::before{background:var(--ink);height:22px;opacity:1}
+.arc.ok i.on::before{background:var(--c-fifth)}
+.arc.far i.on::before{background:var(--c-root)}
+.tuner .read{text-align:center;line-height:1.1}
+.tuner .read b{font-family:'Archivo Black','Archivo',sans-serif;font-size:25px;
+  letter-spacing:-.02em}
+.tuner .read .cents{display:block;font-size:12.5px;color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;margin-top:2px}
+.tuner .read .cents.ok{color:var(--ink);font-weight:600}
+.tuner-msg{font-size:12.5px;color:var(--ink-soft);margin:8px 0 9px;text-align:center;
+  max-width:40ch;margin-left:auto;margin-right:auto}
 details.gloss summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-soft);list-style:none}
 details.gloss summary::-webkit-details-marker{display:none}
 details.gloss summary::before{content:'+ ';font-weight:400}
@@ -229,6 +262,7 @@ details.gloss dd b{color:var(--ink);font-weight:600}
        max-width:40px;max-height:40px;font-size:13px}
   .roots{grid-template-columns:repeat(6,1fr);gap:4px}
   .roots .chip{padding:10px 0;font-size:14px}
+  #tuner-strings .chip{padding:10px 0;font-size:13.5px}
   .chip{padding:8px 11px}
   .deg-btn{padding:9px 10px}
   .wrap{padding:14px 14px calc(64px + env(safe-area-inset-bottom))}
@@ -352,6 +386,22 @@ details.gloss dd b{color:var(--ink);font-weight:600}
       <div class="grid2">
         <div><label class="field" for="sel-tuning">Afinação</label><select id="sel-tuning"></select></div>
         <div><label class="field" for="sel-frets">Casas</label><select id="sel-frets"></select></div>
+      </div>
+      <div class="tuner">
+        <h3>Afinador — escolha a corda e toque ela solta</h3>
+        <div class="row tight tuner-strings" id="tuner-strings"></div>
+        <div id="gauge" hidden>
+          <div class="arc" id="arc" role="img" aria-labelledby="tuner-read"></div>
+          <div class="read" id="tuner-read" aria-live="polite">
+            <b id="tuner-note">—</b>
+            <span class="cents" id="tuner-cents"></span>
+          </div>
+          <p class="tuner-msg" id="tuner-msg"></p>
+          <div class="row tight">
+            <button class="chip" id="btn-ref" type="button">tom de referência</button>
+            <button class="chip" id="btn-tuner-off" type="button">parar</button>
+          </div>
+        </div>
       </div>
     </div>
     <div class="card">
@@ -760,6 +810,127 @@ function identify(pcSet, bassPc){
   return out;
 }
 /*==recog-end==*/
+
+/*==tuner-start==*/
+/* =========================================================
+   Afinador — uma corda por vez, alvo conhecido
+   ---------------------------------------------------------
+   A pergunta aqui NÃO é "que nota é essa?", é "quão longe de 82,41 Hz
+   está isso?". Saber o alvo antes de medir muda a natureza do problema:
+   o 3º harmônico do mi grave cai a 2 cents do si e o 4º cai exatamente
+   no mi agudo, então um afinador que adivinha a nota precisa de regra de
+   desempate entre alvos. Um que já sabe qual corda você tocou não precisa.
+
+   Autocorrelação normalizada numa janela de lags em volta do período do
+   alvo. Ela acha o período certo mesmo com a fundamental fraca ou ausente
+   — que é exatamente o que o microfone de celular entrega no mi grave —,
+   porque uma série harmônica sem fundamental ainda correlaciona no
+   período da fundamental.
+
+   Interpolação parabólica do pico não é refinamento, é obrigatória: um
+   erro de UMA amostra no lag custa 1200/ln2/P cents, ou seja 3,2 cents no
+   mi grave e 12,9 no mi agudo a 48 kHz. Na autocorrelação a corda
+   apertada é a AGUDA, que tem menos amostras por período — o inverso do
+   FFT, onde o problema seria o grave. Por isso também não se reamostra
+   para baixo aqui: economizaria CPU que sobra e pagaria com a precisão
+   justamente da corda mais crítica.
+========================================================= */
+const A4_HZ = 440;
+/* janela de busca em volta do alvo. As cordas vizinhas estão a 400 cents
+   (sol→si) ou 500, então esta janela nunca alcança a vizinha, e ainda
+   cobre uma corda um tom inteiro frouxa. */
+const TUNE_SPAN_CENTS = 250;
+/* "afinada" vale exatamente enquanto o traço do meio está aceso: 21 traços em
+   ±50 cents dão 5 cents por traço, então o do meio cobre ±2,5. Ter duas réguas
+   — uma para o texto, outra para o arco — produziria a pergunta "se está
+   afinada, por que o ponteiro não está no centro?". */
+const TUNE_OK_CENTS = 2.5;
+const TUNE_MIN_RMS = 0.005;     // abaixo disso é silêncio, não corda
+const TUNE_MIN_CLARITY = 0.5;   // abaixo disso é ruído com sorte
+const TUNE_ATTACK_MS = 120;     // o ataque vem agudo e assenta; descarta
+const TUNE_HIST = 7;            // quadros na mediana
+/* 21 traços em ±50 cents = 5 cents por traço, que é a resolução que este
+   método honestamente entrega. Mostrar mais fina seria mentir. */
+const TUNE_SEGMENTS = 21;
+const TUNE_ARC_SPAN = 50;
+
+function hzOfMidi(m){ return A4_HZ * Math.pow(2, (m-69)/12); }
+function centsBetween(hz, refHz){ return 1200 * Math.log2(hz/refHz); }
+
+/* os seis alvos saem da afinação escolhida: Drop D e DADGAD de graça */
+function tuneTargets(midi){
+  return midi.map((m,s)=>({ s, str:6-s, midi:m, hz:hzOfMidi(m) }));
+}
+
+function rmsOf(buf){
+  let s=0; for (let i=0;i<buf.length;i++) s += buf[i]*buf[i];
+  return Math.sqrt(s/buf.length);
+}
+
+/* correlação normalizada no lag k, sempre sobre os MESMOS L termos:
+   usar buf.length-k termos enviesaria o resultado para os lags curtos */
+function ncorr(buf, k, L){
+  let num=0, a=0, b=0;
+  for (let i=0;i<L;i++){
+    const x=buf[i], y=buf[i+k];
+    num += x*y; a += x*x; b += y*y;
+  }
+  const den = Math.sqrt(a*b);
+  return den > 0 ? num/den : 0;
+}
+
+/* devolve {hz, cents, clarity, level} ou null quando não há nota desta
+   corda no ar. null é resposta, não erro: silêncio, ruído e corda errada
+   caem todos aqui, e o ponteiro fica parado em vez de inventar. */
+function detectNear(buf, sampleRate, targetHz, spanCents){
+  const span = spanCents === undefined ? TUNE_SPAN_CENTS : spanCents;
+  const level = rmsOf(buf);
+  if (level < TUNE_MIN_RMS) return null;
+  const p = sampleRate / targetHz;
+  const lo = Math.max(2, Math.floor(p * Math.pow(2, -span/1200)) - 1);
+  const hi = Math.ceil(p * Math.pow(2, span/1200)) + 1;
+  const L = buf.length - hi;
+  /* menos de três períodos do alvo na janela e a correlação vira loteria */
+  if (L < 3*p) return null;
+  const r = new Float64Array(hi - lo + 1);
+  let best = -Infinity, bestK = -1;
+  for (let k=lo;k<=hi;k++){
+    const v = ncorr(buf, k, L);
+    r[k-lo] = v;
+    if (v > best){ best = v; bestK = k; }
+  }
+  /* pico encostado na borda da janela: o período verdadeiro está fora
+     dela, ou seja, não é esta corda */
+  if (bestK <= lo || bestK >= hi) return null;
+  if (best < TUNE_MIN_CLARITY) return null;
+  const y0 = r[bestK-lo-1], y1 = r[bestK-lo], y2 = r[bestK-lo+1];
+  const den = y0 - 2*y1 + y2;
+  const delta = den !== 0 ? 0.5*(y0 - y2)/den : 0;
+  const period = bestK + Math.max(-1, Math.min(1, delta));
+  const hz = sampleRate / period;
+  const cents = centsBetween(hz, targetHz);
+  if (Math.abs(cents) > span) return null;
+  return { hz, cents, clarity: best, level };
+}
+
+/* mediana, não média: a média dilui o quadro ruim e ainda deixa ele mexer
+   o ponteiro; a mediana simplesmente o ignora */
+function medianOf(xs){
+  if (!xs || !xs.length) return null;
+  const a = Array.prototype.slice.call(xs).sort((x,y)=>x-y);
+  const n = a.length;
+  return n % 2 ? a[(n-1)/2] : (a[n/2-1] + a[n/2]) / 2;
+}
+
+/* cents → traço aceso no arco. 0 é o extremo grave, o do meio é afinado */
+function arcIndex(cents, segments, spanCents){
+  const n = segments || TUNE_SEGMENTS;
+  const span = spanCents || TUNE_ARC_SPAN;
+  const half = (n-1)/2;
+  const x = Math.max(-1, Math.min(1, cents/span));
+  return Math.round(half + half*x);
+}
+/*==tuner-end==*/
 
 /* =========================================================
    Estado
@@ -1338,7 +1509,10 @@ selChord.addEventListener('change', e=>{
   clearPick(); state.formIdx=0; state.view='forma';
   paint(); if(state.sound) hearSet(); });
 selTun.addEventListener('change', e=>{
-  state.tuning=TUNINGS.find(t=>t.id===e.target.value); state.formIdx=0; paint(); });
+  state.tuning=TUNINGS.find(t=>t.id===e.target.value); state.formIdx=0; paint();
+  /* o alvo do afinador segue a afinação escolhida: é a mesma corda, outra nota */
+  if (tun.t) tun.t = tunerTargets().find(x=>x.s===tun.t.s);
+  tun.hist.length=0; buildTunerStrings(); drawTuner(null); });
 selFret.addEventListener('change', e=>{
   state.frets=+e.target.value; state.formIdx=0;
   state.picked = state.picked.filter(p=>p.f<=state.frets);
@@ -1402,11 +1576,11 @@ document.addEventListener('keydown', e=>{
 btn('btn-acc').addEventListener('click', ()=>{
   state.acc = state.acc==='sharp'?'flat':'sharp';
   btn('btn-acc').textContent = state.acc==='sharp'?'sustenidos':'bemóis';
-  respell(); buildRoots(); paint(); });
+  respell(); buildRoots(); syncTunerLabels(); paint(); });
 btn('btn-label').addEventListener('click', ()=>{
   state.label = state.label==='nota'?'intervalo':state.label==='intervalo'?'solfejo':'nota';
   btn('btn-label').textContent = 'rótulo: '+state.label;
-  buildRoots(); paint(); });
+  buildRoots(); syncTunerLabels(); paint(); });
 btn('btn-clear').addEventListener('click', ()=>{
   clearPick(); state.adhoc=null; state.adhocFrom=null; state.kind='nota';
   state.formIdx=0; paint(); });
@@ -1422,9 +1596,184 @@ function syncControls(){
     b.setAttribute('aria-pressed', String(pc===state.keyPc)); });
 }
 
+/* =========================================================
+   Afinador — microfone, ponteiro, permissão
+   ---------------------------------------------------------
+   O bloco puro lá em cima não sabe o que é DOM nem microfone. Aqui embaixo
+   fica tudo que o jsdom não tem, e que por isso não se testa sozinho — só
+   pelo caminho de falha, que é justamente o que o app.test.js exercita.
+========================================================= */
+const tun = { t:null, stream:null, an:null, buf:null, hist:[],
+              onset:0, quiet:0, timer:0, hold:0, err:'' };
+/* 22 leituras por segundo bastam para um mostrador que se lê com o olho, e a
+   janela de 85ms do analisador nem se renova mais rápido que isso. Por isso
+   o laço é temporizador e não requestAnimationFrame: o rAF entregaria 60
+   quadros para eu descartar 38, e para de rodar em situações em que a página
+   segue visível (janela encoberta, webview, economia de bateria) — num
+   afinador isso é ponteiro congelado sem explicação. Sair da aba, que é
+   quando o rAF acerta em parar, eu trato no visibilitychange. */
+const TUNE_MS = 45;
+const TUNER_MSG = {
+  'sem-api':'Sem microfone aqui. É o que acontece ao abrir o arquivo direto do disco: '
+    + 'captura de áudio exige HTTPS. Pelo endereço publicado funciona — e o tom de '
+    + 'referência funciona sempre.',
+  'negado':'O navegador negou o microfone. Dá para liberar nas permissões do site, '
+    + 'ou afinar de ouvido pelo tom de referência.',
+  'falhou':'Não consegui abrir o microfone. O tom de referência continua valendo.'
+};
+
+function tunerTargets(){ return tuneTargets(state.tuning.midi); }
+
+function buildArc(){
+  const box = document.getElementById('arc');
+  const half = (TUNE_SEGMENTS-1)/2, step = 160/(TUNE_SEGMENTS-1);
+  let html = '';
+  for (let i=0;i<TUNE_SEGMENTS;i++)
+    html += '<i style="transform:rotate('+((i-half)*step).toFixed(2)+'deg)"></i>';
+  box.innerHTML = html;
+}
+
+function buildTunerStrings(){
+  const box = document.getElementById('tuner-strings');
+  box.innerHTML = '';
+  tunerTargets().forEach(t=>{
+    const b = document.createElement('button');
+    b.type='button'; b.className='chip'; b.dataset.str = t.s;
+    b.setAttribute('aria-pressed', String(!!tun.t && tun.t.s === t.s));
+    b.textContent = t.str + 'ª ' + disp(pcName(t.midi % 12));
+    b.addEventListener('click', ()=>tunerPick(t.s));
+    box.appendChild(b);
+  });
+}
+
+/* trocar sustenido por bemol, ou nota por solfejo, reescreve os rótulos do
+   afinador junto com o resto. Se o laço está rodando ele já redesenha o
+   mostrador sozinho; sem laço, redesenho aqui. */
+function syncTunerLabels(){
+  buildTunerStrings();
+  if (!tun.timer) drawTuner(null);
+}
+
+function drawTuner(read){
+  const arc = document.getElementById('arc');
+  const mid = (TUNE_SEGMENTS-1)/2;
+  const idx = read ? arcIndex(read.cents) : -1;
+  const ok  = !!read && Math.abs(read.cents) <= TUNE_OK_CENTS;
+  arc.className = 'arc' + (ok ? ' ok' : (read && Math.abs(read.cents) > 25 ? ' far' : ''));
+  for (let i=0;i<arc.children.length;i++)
+    arc.children[i].className = (i===mid ? 'mid' : '') + (i===idx ? ' on' : '');
+
+  document.getElementById('tuner-note').textContent =
+    tun.t ? disp(pcName(tun.t.midi % 12)) : '—';
+  const cents = document.getElementById('tuner-cents');
+  if (!read){ cents.textContent = tun.t ? '—' : ''; cents.className = 'cents'; }
+  else if (ok){ cents.textContent = 'afinada'; cents.className = 'cents ok'; }
+  else {
+    const c = Math.round(read.cents);
+    /* o Hz cru fica à vista de propósito: é o diagnóstico que diz se o
+       microfone deste aparelho enxerga a corda grave */
+    cents.textContent = Math.abs(c) + ' cents ' + (c<0 ? 'abaixo' : 'acima')
+                      + ' · ' + read.hz.toFixed(1) + ' Hz';
+    cents.className = 'cents';
+  }
+}
+
+function tunerMsg(){
+  const el = document.getElementById('tuner-msg');
+  if (tun.err){ el.textContent = TUNER_MSG[tun.err] || TUNER_MSG.falhou; return; }
+  el.textContent = tun.t ? 'Ouvindo a ' + tun.t.str + 'ª corda solta.' : '';
+}
+
+/* o microfone só é pedido quando você escolhe uma corda — nunca ao abrir a
+   página. E o que sai dele para em an: nada volta para o alto-falante. */
+async function micOpen(){
+  if (tun.an) return true;
+  const md = navigator.mediaDevices;
+  if (!md || !md.getUserMedia || !audio()){ tun.err = 'sem-api'; return false; }
+  try {
+    /* o ganho automático e a supressão de ruído do navegador deformam o
+       sinal justamente onde a medida acontece. Desligados. */
+    tun.stream = await md.getUserMedia({ audio:{
+      echoCancellation:false, noiseSuppression:false, autoGainControl:false } });
+  } catch(e){
+    tun.err = (e && e.name === 'NotAllowedError') ? 'negado' : 'falhou';
+    return false;
+  }
+  const an = ac.createAnalyser();
+  an.fftSize = 4096;                    /* 85ms a 48 kHz = 7 períodos do mi grave */
+  ac.createMediaStreamSource(tun.stream).connect(an);
+  tun.an = an; tun.buf = new Float32Array(an.fftSize); tun.err = '';
+  return true;
+}
+
+async function tunerPick(s){
+  tun.t = tunerTargets().find(x=>x.s === s);
+  tun.hist.length = 0; tun.onset = 0; tun.quiet = 0;
+  document.getElementById('gauge').hidden = false;
+  buildTunerStrings(); drawTuner(null); tunerMsg();
+  const ok = await micOpen();
+  tunerMsg();
+  if (ok && !tun.timer) tun.timer = setInterval(tunerTick, TUNE_MS);
+}
+
+function tunerTick(){
+  if (!tun.t || !tun.an) return;
+  const now = performance.now();
+  if (now < tun.hold) return;
+  if (tun.hold){ tun.hold = 0; tunerMsg(); }
+  tun.an.getFloatTimeDomainData(tun.buf);
+  const d = detectNear(tun.buf, ac.sampleRate, tun.t.hz);
+  if (!d){
+    /* um quadro ruim no meio de uma nota que decai não zera a leitura: só
+       depois de uns 250ms de nada é que o ponteiro solta */
+    if (++tun.quiet > 5){ tun.hist.length = 0; tun.onset = 0; drawTuner(null); }
+    return;
+  }
+  tun.quiet = 0;
+  if (!tun.onset) tun.onset = now;
+  /* o ataque da corda vem agudo e vai assentando: medir aí dá um número
+     alguns cents deslocado do que ela vai soar quando estiver soando */
+  if (now - tun.onset < TUNE_ATTACK_MS) return;
+  tun.hist.push(d.cents);
+  if (tun.hist.length > TUNE_HIST) tun.hist.shift();
+  drawTuner({ cents: medianOf(tun.hist), hz: d.hz });
+}
+
+function tunerOff(){
+  if (tun.timer) clearInterval(tun.timer);
+  tun.timer = 0; tun.t = null; tun.hist.length = 0;
+  tun.onset = 0; tun.quiet = 0; tun.hold = 0; tun.err = '';
+  /* soltar o microfone de verdade: senão o indicador do sistema fica aceso
+     e o navegador segue moendo áudio de graça */
+  if (tun.stream){ tun.stream.getTracks().forEach(k=>k.stop()); tun.stream = null; }
+  tun.an = null; tun.buf = null;
+  document.getElementById('gauge').hidden = true;
+  buildTunerStrings(); drawTuner(null); tunerMsg();
+}
+
+btn('btn-tuner-off').addEventListener('click', tunerOff);
+btn('btn-ref').addEventListener('click', ()=>{
+  if (!tun.t) return;
+  state.sound = true; syncSound();
+  pluck(tun.t.midi, 0, 0.22);
+  /* enquanto a referência soa eu paro de escutar, senão o microfone ouve o
+     alto-falante e mede a minha própria nota em vez da corda */
+  tun.hold = performance.now() + 2600;
+  tun.hist.length = 0; tun.onset = 0;
+  drawTuner(null);
+  document.getElementById('tuner-msg').textContent =
+    'Tocando a ' + tun.t.str + 'ª corda como referência.';
+});
+/* sair da aba com o microfone aberto é o jeito clássico de deixar o
+   indicador aceso e a bateria escorrendo */
+document.addEventListener('visibilitychange', ()=>{ if (document.hidden && tun.t) tunerOff(); });
+
 buildRoots();
 buildBoard();
 syncProse();
+buildArc();
+buildTunerStrings();
+drawTuner(null);
 
 </script>
 </body>

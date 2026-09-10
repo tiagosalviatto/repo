@@ -265,7 +265,45 @@ eq([recolhidos(),btnProse.textContent],[0,'explicações'],'o mesmo botão devol
 eq(/Clique numa casa/.test(d.getElementById('hint').textContent),true,
    'e a dica do modo uma nota voltou inteira');
 
-console.log('\n[W] Nenhum erro de execução no caminho todo');
-eq(errs,[], 'zero exceções lançadas');
-console.log(fail? '\n>>> '+fail+' falha(s)':'\n>>> todos passaram');
-process.exit(fail?1:0);
+console.log('\n[AF] Afinador: alvos, rótulos e o caminho de falha');
+const cordas=()=>[...d.querySelectorAll('#tuner-strings .chip')].map(b=>b.textContent);
+const gauge=()=>d.getElementById('gauge');
+const marcada=()=>{const b=[...d.querySelectorAll('#tuner-strings .chip')]
+  .find(x=>x.getAttribute('aria-pressed')==='true'); return b?b.textContent:'(nenhuma)';};
+eq(cordas(),['6ª E','5ª A','4ª D','3ª G','2ª B','1ª E'],'seis cordas, da grave pra aguda');
+eq(d.querySelectorAll('#arc i').length,21,'o arco tem os 21 traços');
+eq(gauge().hidden,true,'mostrador escondido antes de escolher corda');
+eq(marcada(),'(nenhuma)','e nenhuma corda marcada');
+/* o alvo sai da afinação, não de constante fixa */
+setSel('sel-tuning','dropd');
+eq(cordas()[0],'6ª D','Drop D reescreve a 6ª corda sozinho');
+setSel('sel-tuning','dadgad');
+eq(cordas(),['6ª D','5ª A','4ª D','3ª G','2ª A','1ª D'],'DADGAD idem, nas seis');
+setSel('sel-tuning','std');
+/* e os rótulos seguem o botão de grafia, como o resto do app */
+click(d.getElementById('btn-label')); click(d.getElementById('btn-label'));
+eq([d.getElementById('btn-label').textContent,cordas()[0]],['rótulo: solfejo','6ª Mi'],
+   'em solfejo a 6ª corda vira Mi');
+click(d.getElementById('btn-label'));
+eq(cordas()[0],'6ª E','de volta pra cifra');
+/* escolher a corda abre o mostrador na hora, antes de saber do microfone */
+click(d.querySelectorAll('#tuner-strings .chip')[0]);
+eq([gauge().hidden,marcada()],[false,'6ª E'],'escolhi a 6ª: mostrador aparece e a corda fica marcada');
+eq(d.getElementById('tuner-note').textContent,'E','o mostrador já anuncia o alvo');
+/* o jsdom não tem getUserMedia — é o mesmo caminho de um iPhone que nega o
+   microfone, e é exatamente o que tem de continuar utilizável */
+setTimeout(()=>{
+  eq(/tom de referência/.test(d.getElementById('tuner-msg').textContent),true,
+     'sem microfone, a mensagem manda no tom de referência em vez de dar erro');
+  eq(!!d.getElementById('btn-ref'),true,'e o botão de referência está lá');
+  click(d.getElementById('btn-ref'));
+  eq(/refer[êe]ncia/.test(d.getElementById('tuner-msg').textContent),true,
+     'clicar nele funciona sem microfone nenhum');
+  click(d.getElementById('btn-tuner-off'));
+  eq([gauge().hidden,marcada()],[true,'(nenhuma)'],'parar fecha o mostrador e solta a corda');
+
+  console.log('\n[W] Nenhum erro de execução no caminho todo');
+  eq(errs,[], 'zero exceções lançadas');
+  console.log(fail? '\n>>> '+fail+' falha(s)':'\n>>> todos passaram');
+  process.exit(fail?1:0);
+}, 10);
