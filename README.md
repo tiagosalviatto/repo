@@ -7,6 +7,7 @@ Explorador de braço de violão. Um arquivo, sem dependência de runtime, sem bu
 - Monte um acorde clicando casa por casa e o topo **reconhece** o que você montou, inclusive inversões e leituras alternativas.
 - Campo harmônico do tom, em tríades ou tétrades, com numeral romano.
 - Som de corda pinçada por Karplus-Strong, sem nenhum arquivo de áudio.
+- Os textos de instrução recolhem num botão só (**explicações**, no topo), para quem já sabe como o app funciona e quer a tela inteira para o braço.
 
 ## Rodar
 
@@ -32,7 +33,7 @@ npm install
 npm test
 ```
 
-283 asserções em oito suítes:
+295 asserções em oito suítes:
 
 | suíte | o que cobre |
 |---|---|
@@ -41,8 +42,8 @@ npm test
 | `recognize.test.js` | dicionário reverso de 46 estruturas; inversões; ida e volta contra o catálogo de formas |
 | `build.test.js` | regra de uma casa por corda; toda forma do catálogo, montada a mão, se reconhece |
 | `contrast.test.js` | contraste do anel de foco contra madeira e bancada, mínimo 3:1 da WCAG |
-| `app.test.js` | o app rodando em jsdom: 99 asserções sobre cliques, teclas e o que aparece na tela |
-| `mobile.test.js` | aritmética de largura por aparelho, alvos de toque, metas do iOS, ausência de `vh` |
+| `app.test.js` | o app rodando em jsdom: 106 asserções sobre cliques, teclas e o que aparece na tela |
+| `mobile.test.js` | aritmética de largura por aparelho, alvos de toque, metas do iOS, ausência de `vh`, altura poupada ao recolher os textos |
 | `noscript.test.js` | o mesmo arquivo com script ligado e desligado |
 
 ### Por que os testes leem o HTML

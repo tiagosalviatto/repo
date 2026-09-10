@@ -53,7 +53,14 @@ console.log('\n[BE] O alvo de toque saiu de 29px');
 const alvo=w=>Math.min(40, lane(w)-12);
 [375,390,430].forEach(w=> eq(alvo(w)>=39,true,'em '+w+'px o alvo tem '+alvo(w)+'px (antes: 29px)'));
 
-console.log('\n[BF] Nada disso quebrou o app');
+console.log('\n[BF] Recolher texto poupa altura, e o botão não a devolve');
+const cssNoSp=cssNu.replace(/\s+/g,'');
+eq(/header\.topp\{[^}]*order:1;flex-basis:100%/.test(cssNoSp),true,
+   'no celular a frase de abertura cai numa linha só dela, e o botão divide a primeira com o título');
+eq(/\[hidden\]\{display:none!important\}/.test(cssNoSp),true,
+   'o recolhido usa [hidden], que já tem regra — nada de altura sobrando');
+
+console.log('\n[BG] Nada disso quebrou o app');
 const dom=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,
   beforeParse(w){w.AudioContext=undefined;w.webkitAudioContext=undefined;}});
 const w=dom.window,d=w.document;

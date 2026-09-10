@@ -16,6 +16,9 @@ eq(aviso.querySelector('h2').textContent,'O JavaScript não está rodando aqui',
 eq(aviso.querySelectorAll('ol li').length,3,'três saídas listadas');
 eq(/python3 -m http\.server/.test(aviso.textContent),true,'inclui o comando pra servir na rede local');
 eq(!!off.querySelector('noscript style'),true,'e esconde a casca vazia da interface');
+eq(/#btn-prose/.test(off.querySelector('noscript style').textContent),true,
+   'inclusive o botão de recolher texto, que sem script não recolheria nada');
+eq(off.querySelector('header.top p').hidden,false,'o texto do topo segue legível');
 
 console.log('\n[CB] Script LIGADO — o mesmo arquivo, funcionando');
 const on=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,
@@ -27,5 +30,7 @@ eq(on.querySelectorAll('#roots .chip').length,12,'12 botões de tônica');
 eq(on.querySelectorAll('#field-list .deg-btn').length,7,'7 graus no campo harmônico');
 eq(on.querySelector('#composicao .name').textContent.trim(),'C','composição preenchida');
 eq(on.querySelector('.nojs'),null,'com script, o aviso nem existe no documento');
+eq([on.getElementById('btn-prose').textContent,on.querySelectorAll('.prose').length],
+   ['explicações',2],'e o botão de recolher texto assume os dois parágrafos');
 console.log(fail? '\n>>> '+fail+' falha(s)':'\n>>> todos passaram');
 process.exit(fail?1:0);

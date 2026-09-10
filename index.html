@@ -192,6 +192,12 @@ table.tones tr.off td{opacity:.45}
 .legend span{display:flex;align-items:center;gap:5px}
 .legend i{width:11px;height:11px;border-radius:50%;display:inline-block}
 .hint{font-size:12.5px;color:var(--ink-soft);margin:9px 0 0;max-width:56ch}
+/* ---- prosa de instrução ----
+   O texto ensina na primeira visita e depois só ocupa altura: o parágrafo
+   do modo acorde tem seis linhas no iPhone e empurra o campo harmônico
+   para fora da tela. O botão no topo recolhe todos de uma vez, pelo
+   atributo [hidden], que já tem regra lá em cima. */
+header.top .prose-btn{margin-left:auto;align-self:center}
 kbd{background:var(--panel-2);border:1px solid var(--hair);border-bottom-width:2px;
   border-radius:2px;padding:0 4px;font-family:inherit;font-size:11.5px}
 
@@ -227,7 +233,10 @@ details.gloss dd b{color:var(--ink);font-weight:600}
   .deg-btn{padding:9px 10px}
   .wrap{padding:14px 14px calc(64px + env(safe-area-inset-bottom))}
   header.top{padding-bottom:11px;margin-bottom:13px}
-  header.top p{font-size:14px}
+  /* o título e o botão dividem a primeira linha e a frase de abertura cai
+     inteira embaixo. Deixar o botão descer para uma terceira linha custaria
+     os mesmos 40px de altura que ele existe para poupar. */
+  header.top p{font-size:14px;order:1;flex-basis:100%}
 }
 /* rodando como app na tela de início, a barra de status invade o topo */
 @media (display-mode:standalone){
@@ -252,11 +261,13 @@ details.gloss dd b{color:var(--ink);font-weight:600}
 
   <header class="top">
     <h1>braço</h1>
-    <p>Clique numa nota e veja onde ela mora no resto do braço. Escolha um acorde e veja a forma que se toca.</p>
+    <p class="prose">Clique numa nota e veja onde ela mora no resto do braço. Escolha um acorde e veja a forma que se toca.</p>
+    <button class="chip prose-btn" id="btn-prose" type="button" aria-pressed="true">explicações</button>
   </header>
 
   <noscript>
-    <style>.deck,.stage,.foot{display:none}</style>
+    <!-- sem script o botão não recolhe nada: some junto com o resto da casca -->
+    <style>.deck,.stage,.foot,#btn-prose{display:none}</style>
     <div class="nojs">
       <h2>O JavaScript não está rodando aqui</h2>
       <p>O braço, os acordes e as listas são montados na hora, por script. Sem script sobra a casca — braço vazio e dropdowns em branco, que é provavelmente o que você está vendo.</p>
@@ -319,7 +330,7 @@ details.gloss dd b{color:var(--ink);font-weight:600}
         <span><i style="background:var(--c-other)"></i>2ª, 4ª, 9ª</span>
         <span>× corda não tocada</span>
       </div>
-      <p class="hint" id="hint"></p>
+      <p class="hint prose" id="hint"></p>
     </div>
 
     <div id="extras">
@@ -755,7 +766,7 @@ function identify(pcSet, bassPc){
 ========================================================= */
 const state = {
   tuning: TUNINGS[0], frets: 12, orient: 'v',
-  acc: 'sharp', label: 'nota', showNames: true, sound: true,
+  acc: 'sharp', label: 'nota', showNames: true, sound: true, prose: true,
   kind: 'nota', scaleId: 'maior', chordId: 'maj7', adhoc: null,
   /* TOM: centro tonal. Manda na escala, no campo harmônico e na escala
      por trás. Só muda quando VOCÊ manda. */
@@ -1369,6 +1380,16 @@ btn('btn-names').addEventListener('click', ()=>{
   btn('btn-names').textContent = state.showNames?'notas apagadas':'só o conjunto';
   paint(); });
 btn('btn-sound').addEventListener('click', ()=>{ state.sound=!state.sound; syncSound(); });
+/* recolher é só marcar [hidden] em cada texto: o conteúdo continua no
+   documento, então o paint pode reescrever a dica sem reabri-la, e quem
+   usa leitor de tela não recebe um parágrafo que a tela não mostra */
+function syncProse(){
+  document.querySelectorAll('.prose').forEach(el=>{ el.hidden = !state.prose; });
+  const b = btn('btn-prose');
+  b.setAttribute('aria-pressed', String(state.prose));
+  b.textContent = state.prose ? 'explicações' : 'sem explicações';
+}
+btn('btn-prose').addEventListener('click', ()=>{ state.prose=!state.prose; syncProse(); });
 btn('btn-hear').addEventListener('click', ()=>{ state.sound=true; syncSound(); hearSet(); });
 btn('btn-unpick').addEventListener('click', ()=>{ clearPick(); paint(); });
 /* Esc limpa a montagem de qualquer lugar. Ignoro quando o foco está num
@@ -1403,6 +1424,7 @@ function syncControls(){
 
 buildRoots();
 buildBoard();
+syncProse();
 
 </script>
 </body>

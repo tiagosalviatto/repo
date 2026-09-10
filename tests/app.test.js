@@ -244,6 +244,27 @@ eq([banner(),tomMarcado()],['C7','C'],
    'trocar a espécie recoloca o acorde na tônica (dropdown está em 7)');
 eq(d.querySelectorAll('.dot.on').length<=6,true,'mostrando uma forma, não o braço todo');
 
+console.log('\n[AE] Recolher os textos explicativos');
+const btnProse=d.getElementById('btn-prose');
+const textos=()=>[...d.querySelectorAll('.prose')];
+const recolhidos=()=>textos().filter(e=>e.hidden).length;
+eq(textos().map(e=>e.id||e.tagName.toLowerCase()),['p','hint'],
+   'dois textos explicativos: o do topo e a dica embaixo do braço');
+eq([recolhidos(),btnProse.getAttribute('aria-pressed'),btnProse.textContent],
+   [0,'true','explicações'],'abre mostrando: quem chega na primeira vez lê sem procurar');
+click(btnProse);
+eq([recolhidos(),btnProse.getAttribute('aria-pressed'),btnProse.textContent],
+   [2,'false','sem explicações'],'um clique recolhe os dois de uma vez');
+eq(d.getElementById('hint').textContent.length>0,true,
+   'o texto segue no documento, só não ocupa altura');
+click(kindChip('acorde')); click(dot(1,3));
+eq(recolhidos(),2,'repintar o braço não reabre o que eu fechei');
+click(d.getElementById('btn-clear'));
+click(btnProse);
+eq([recolhidos(),btnProse.textContent],[0,'explicações'],'o mesmo botão devolve os textos');
+eq(/Clique numa casa/.test(d.getElementById('hint').textContent),true,
+   'e a dica do modo uma nota voltou inteira');
+
 console.log('\n[W] Nenhum erro de execução no caminho todo');
 eq(errs,[], 'zero exceções lançadas');
 console.log(fail? '\n>>> '+fail+' falha(s)':'\n>>> todos passaram');

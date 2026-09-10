@@ -8,7 +8,7 @@ const SUITES = [
   ['reconhecimento','recognize.test.js', 'dicionário reverso e leitura de inversões'],
   ['montagem',      'build.test.js',     'mesa de montagem: regra de clique e ida-e-volta'],
   ['contraste',     'contrast.test.js',  'visibilidade do anel de foco (WCAG 3:1)'],
-  ['app',           'app.test.js',       'comportamento no DOM: 99 cliques e teclas'],
+  ['app',           'app.test.js',       'comportamento no DOM: 106 cliques e teclas'],
   ['celular',       'mobile.test.js',    'alvos de toque, metas do iOS, largura por aparelho'],
   ['sem-script',    'noscript.test.js',  'o aviso quando o JavaScript não roda']
 ];
