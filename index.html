@@ -1623,7 +1623,12 @@ const selFret=document.getElementById('sel-frets');
 fill(selKey, SCALES, state.scaleId);
 fill(selChord, CHORDS.map(c=>({id:c.id, name:c.sym ? c.sym+' — '+c.name : 'maior (tríade)'})), state.chordId);
 fill(selTun, TUNINGS, 'std');
-fill(selFret, [{id:'12',name:'12 casas'},{id:'15',name:'15 casas'},{id:'22',name:'22 casas'}], '12');
+/* 7 e 9 casas existem para a primeira região do braço: as digitações do
+   caderno não passam da 6ª casa, então cabem inteiras num braço curto, e o
+   ponto que sobra na tela fica maior no celular. */
+fill(selFret, [{id:'7',name:'7 casas'},{id:'9',name:'9 casas'},
+               {id:'12',name:'12 casas'},{id:'15',name:'15 casas'},
+               {id:'22',name:'22 casas'}], '12');
 
 /* Dó maior e dó menor são tons diferentes, então trocar a espécie conta
    como trocar de tom: o acorde volta pra tônica, pelo mesmo motivo que

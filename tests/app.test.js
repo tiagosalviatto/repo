@@ -125,6 +125,11 @@ click(d.getElementById('btn-orient'));
 eq(d.getElementById('board').dataset.orient,'h','braço deitou');
 click(d.getElementById('btn-orient'));
 setSel('sel-frets','22'); eq(d.querySelectorAll('.dot').length,6*23,'22 casas');
+eq([...d.querySelectorAll('#sel-frets option')].map(o=>o.value),['7','9','12','15','22'],
+   'cinco tamanhos de braço, do mais curto ao inteiro');
+setSel('sel-frets','7');  eq(d.querySelectorAll('.dot').length,6*8,'7 casas');
+eq(d.querySelectorAll('.inlay').length,3,'e só os marcadores de 3, 5 e 7');
+setSel('sel-frets','9');  eq(d.querySelectorAll('.dot').length,6*10,'9 casas');
 setSel('sel-tuning','dadgad'); eq(banner(),'C7','DADGAD sem estourar');
 setSel('sel-tuning','std'); setSel('sel-frets','12');
 setSel('sel-key','harmonica');
@@ -173,6 +178,9 @@ key('ArrowUp');    eq(onde(),'corda 6, casa 0','no mi grave o foco não escapa p
 setSel('sel-frets','22');
 eq([+dot(0,0).parentElement.style.gridColumn,+dot(0,22).parentElement.style.gridColumn],[23,1],
    'com 22 casas a pestana segue na coluna mais à direita');
+setSel('sel-frets','7');
+eq([+dot(0,0).parentElement.style.gridColumn,+dot(0,7).parentElement.style.gridColumn],[8,1],
+   'e com 7 casas também: o braço encurta, a pestana não troca de lado');
 setSel('sel-frets','12');
 click(d.getElementById('btn-orient'));
 eq([+dot(0,0).parentElement.style.gridRow,+dot(0,0).parentElement.style.gridColumn],[1,2],
@@ -323,6 +331,12 @@ setTimeout(()=>{
   setSel('sel-key','harmonica'); click(degBtn(4));
   eq(chips()[0]==='do caderno · 3ª',false,'as folhas são de escala maior: fora dela, nada');
   setSel('sel-key','maior');
+  setSel('sel-frets','7'); click(degBtn(4));
+  eq([chips()[0],forma()],['do caderno · 3ª','3x343x'],
+     'as folhas não passam da 6ª casa, então cabem inteiras num braço de 7');
+  eq(chips().some(c=>/10ª/.test(c)),false,
+     'e as formas geradas que não cabem em 7 casas somem dos chips');
+  setSel('sel-frets','12');
   click(rootChip(1)); click(d.getElementById('btn-tet')); click(degBtn(0));
   eq(chips()[0]==='do caderno · 3ª',false,'e num tom que as folhas não cobrem, também nada');
 

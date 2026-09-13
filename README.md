@@ -37,7 +37,7 @@ npm install
 npm test
 ```
 
-412 asserções em dez suítes:
+419 asserções em dez suítes:
 
 | suíte | o que cobre |
 |---|---|
@@ -48,7 +48,7 @@ npm test
 | `build.test.js` | regra de uma casa por corda; toda forma do catálogo, montada a mão, se reconhece |
 | `contrast.test.js` | contraste do anel de foco contra madeira e bancada, mínimo 3:1 da WCAG |
 | `tuner.test.js` | o afinador em sinal sintético: seis cordas em duas taxas de amostragem, harmônicos sem fundamental, decaimento de nylon, ruído de sala, a mediana e o arco |
-| `app.test.js` | o app rodando em jsdom: 139 asserções sobre cliques, teclas e o que aparece na tela, incluindo o acorde do caderno, o recolher por seção e a regressão do cache de formas |
+| `app.test.js` | o app rodando em jsdom: 146 asserções sobre cliques, teclas e o que aparece na tela, incluindo o acorde do caderno, o recolher por seção e a regressão do cache de formas |
 | `mobile.test.js` | aritmética de largura por aparelho, alvos de toque, metas do iOS, ausência de `vh`, altura poupada ao recolher os textos e as seções |
 | `noscript.test.js` | o mesmo arquivo com script ligado e desligado |
 
