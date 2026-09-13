@@ -20,7 +20,11 @@
   --c-seventh:#9B7BC8; --c-other:#CFC6B4;
   /* largura, nunca altura: vh no iOS muda de valor quando a barra do
      Safari aparece e desaparece, e o braço "respira" enquanto você rola */
-  --cell:clamp(30px,3.4vw,42px); --lane:clamp(36px,6.6vw,56px); --r:3px;
+  --cell:clamp(30px,3.4vw,42px); --lane:clamp(36px,6.6vw,56px);
+  /* três raios, do maior pro menor: cartão, controle, etiqueta. O canto
+     cresce junto com a peça: 12px num chip de 26px vira bolha, e 3px num
+     cartão de 300px vira caixa de papelão. */
+  --r:12px; --r-sm:8px; --r-xs:5px;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -40,15 +44,32 @@ header.top p{margin:0;color:var(--ink-soft);max-width:44ch}
 
 .card{background:var(--panel);border:1px solid var(--hair);border-radius:var(--r);padding:13px 14px}
 h2.lbl{margin:0 0 8px;font-size:12.5px;font-weight:600;color:var(--ink-soft)}
+/* ---- recolher seções ----
+   O título do cartão vira o botão: segue sendo cabeçalho para quem navega
+   por títulos e ganha o anúncio de aberto/fechado. aria-expanded, e não
+   aria-pressed: isto revela conteúdo, não liga uma chave. */
+h2.lbl.sec{margin:0}
+h2.lbl.sec>button{display:flex;align-items:baseline;gap:6px;width:100%;
+  background:none;border:0;margin:0;padding:2px 0 8px;cursor:pointer;text-align:left;
+  font:inherit;font-size:12.5px;font-weight:600;color:var(--ink-soft);
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation}
+h2.lbl.sec>button::after{content:"–";margin-left:auto;font-size:15px;line-height:1}
+h2.lbl.sec>button[aria-expanded="false"]{padding-bottom:2px}
+h2.lbl.sec>button[aria-expanded="false"]::after{content:"+"}
+@media (hover:hover){h2.lbl.sec>button:hover{color:var(--ink)}}
+/* o cartão da composição tem padding zero para a tabela encostar na borda,
+   então o cabeçalho carrega o próprio respiro */
+.comp>h2.lbl.sec>button{padding:11px 14px 9px}
+.comp>h2.lbl.sec>button[aria-expanded="false"]{padding-bottom:11px}
 .row{display:flex;flex-wrap:wrap;gap:6px}
 .row.tight{gap:4px}
-.chip{background:var(--panel-2);border:1px solid var(--hair);border-radius:2px;
+.chip{background:var(--panel-2);border:1px solid var(--hair);border-radius:var(--r-sm);
   padding:5px 9px;cursor:pointer;font-size:13px;font-weight:500;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation}
 @media (hover:hover){.chip:hover{background:#dcdad1}}
 .chip[aria-pressed="true"],.chip.on{background:var(--ink);border-color:var(--ink);color:var(--panel)}
 .chip:disabled{opacity:.4;cursor:default}
-select{background:var(--panel-2);border:1px solid var(--hair);border-radius:2px;
+select{background:var(--panel-2);border:1px solid var(--hair);border-radius:var(--r-sm);
   padding:7px 8px;font:inherit;width:100%;
   /* abaixo de 16px o Safari do iPhone dá zoom na página ao focar o campo */
   font-size:16px}
@@ -86,7 +107,7 @@ table.tones td.note{width:58px;font-weight:600}
 table.tones td.iv{color:var(--ink-soft)}
 table.tones td.where{width:96px;text-align:right;color:var(--ink-soft);font-size:12px}
 table.tones tr.off td{opacity:.45}
-.pill{display:inline-block;min-width:26px;text-align:center;padding:2px 5px;border-radius:2px;
+.pill{display:inline-block;min-width:26px;text-align:center;padding:2px 5px;border-radius:var(--r-xs);
   font-size:12px;font-weight:600;color:#1C1B18}
 .pill.root{background:var(--c-root);color:#fff}
 .pill.third{background:var(--c-third)}
@@ -102,7 +123,7 @@ table.tones tr.off td{opacity:.45}
 
 /* ---- campo harmônico ---- */
 .field-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:5px}
-.deg-btn{text-align:left;background:var(--panel-2);border:1px solid var(--hair);border-radius:2px;
+.deg-btn{text-align:left;background:var(--panel-2);border:1px solid var(--hair);border-radius:var(--r-sm);
   padding:6px 8px;cursor:pointer;line-height:1.25}
 @media (hover:hover){.deg-btn:hover{background:#dcdad1}}
 .deg-btn .num{display:block;font-size:11px;color:var(--ink-soft)}
@@ -199,7 +220,7 @@ table.tones tr.off td{opacity:.45}
    atributo [hidden], que já tem regra lá em cima. */
 header.top .prose-btn{margin-left:auto;align-self:center}
 kbd{background:var(--panel-2);border:1px solid var(--hair);border-bottom-width:2px;
-  border-radius:2px;padding:0 4px;font-family:inherit;font-size:11.5px}
+  border-radius:var(--r-xs);padding:0 4px;font-family:inherit;font-size:11.5px}
 
 .foot{display:grid;gap:14px;margin-top:22px}
 @media (min-width:800px){.foot{grid-template-columns:minmax(250px,320px) 1fr}}
@@ -265,6 +286,8 @@ details.gloss dd b{color:var(--ink);font-weight:600}
   #tuner-strings .chip{padding:10px 0;font-size:13.5px}
   .chip{padding:8px 11px}
   .deg-btn{padding:9px 10px}
+  /* o cabeçalho vira controle no celular: 12,5px de texto não é alvo */
+  h2.lbl.sec>button{min-height:40px;align-items:center}
   .wrap{padding:14px 14px calc(64px + env(safe-area-inset-bottom))}
   header.top{padding-bottom:11px;margin-bottom:13px}
   /* o título e o botão dividem a primeira linha e a frase de abertura cai
@@ -284,7 +307,7 @@ details.gloss dd b{color:var(--ink);font-weight:600}
 .nojs p{margin:0 0 9px}
 .nojs ol{margin:0;padding-left:20px}
 .nojs li{margin-bottom:9px}
-.nojs code{background:var(--panel-2);border:1px solid var(--hair);border-radius:2px;
+.nojs code{background:var(--panel-2);border:1px solid var(--hair);border-radius:var(--r-xs);
   padding:1px 4px;font-size:13px;word-break:break-all}
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -317,7 +340,9 @@ details.gloss dd b{color:var(--ink);font-weight:600}
   <!-- ============ CONTROLES ============ -->
   <div class="deck">
     <div class="card">
-      <h2 class="lbl">Tom</h2>
+      <h2 class="lbl sec"><button type="button" data-sec="tom"
+          aria-expanded="true" aria-controls="sec-tom">Tom</button></h2>
+      <div id="sec-tom">
       <div class="roots" id="roots"></div>
       <div style="margin-top:9px">
         <label class="field" for="sel-key">Maior ou menor</label>
@@ -328,21 +353,29 @@ details.gloss dd b{color:var(--ink);font-weight:600}
         <button class="chip" id="btn-label" type="button">rótulo: nota</button>
         <button class="chip" id="btn-clear" type="button">recomeçar</button>
       </div>
+      </div>
     </div>
     <div class="card">
-      <h2 class="lbl">O que desenhar</h2>
+      <h2 class="lbl sec"><button type="button" data-sec="desenhar"
+          aria-expanded="true" aria-controls="sec-desenhar">O que desenhar</button></h2>
+      <div id="sec-desenhar">
       <div class="row tight" style="margin-bottom:9px">
         <button class="chip" data-kind="nota" type="button">uma nota</button>
         <button class="chip" data-kind="acorde" type="button">acorde</button>
       </div>
       <div><label class="field" for="sel-chord">Acorde</label><select id="sel-chord"></select></div>
+      </div>
     </div>
   </div>
 
   <!-- ============ PALCO ============ -->
   <div class="stage">
 
-    <section class="card comp" id="composicao"></section>
+    <section class="card comp" id="composicao">
+      <h2 class="lbl sec"><button type="button" data-sec="comp"
+          aria-expanded="true" aria-controls="sec-comp">Composição</button></h2>
+      <div id="sec-comp"></div>
+    </section>
 
     <div class="neck-col">
       <div class="neck-tools">
@@ -369,12 +402,15 @@ details.gloss dd b{color:var(--ink);font-weight:600}
 
     <div id="extras">
       <div class="card" id="card-field">
-        <h2 class="lbl">Campo harmônico <span id="field-key"></span></h2>
+        <h2 class="lbl sec"><button type="button" data-sec="field"
+            aria-expanded="true" aria-controls="sec-field">Campo harmônico <span id="field-key"></span></button></h2>
+        <div id="sec-field">
         <div class="row tight" style="margin-bottom:8px">
           <button class="chip on" id="btn-tri" type="button">tríades</button>
           <button class="chip" id="btn-tet" type="button">tétrades</button>
         </div>
         <div class="field-list" id="field-list"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -382,7 +418,9 @@ details.gloss dd b{color:var(--ink);font-weight:600}
   <!-- ============ RODAPÉ ============ -->
   <div class="foot">
     <div class="card">
-      <h2 class="lbl">Instrumento</h2>
+      <h2 class="lbl sec"><button type="button" data-sec="inst"
+          aria-expanded="true" aria-controls="sec-inst">Instrumento</button></h2>
+      <div id="sec-inst">
       <div class="grid2">
         <div><label class="field" for="sel-tuning">Afinação</label><select id="sel-tuning"></select></div>
         <div><label class="field" for="sel-frets">Casas</label><select id="sel-frets"></select></div>
@@ -402,6 +440,7 @@ details.gloss dd b{color:var(--ink);font-weight:600}
             <button class="chip" id="btn-tuner-off" type="button">parar</button>
           </div>
         </div>
+      </div>
       </div>
     </div>
     <div class="card">
@@ -726,6 +765,63 @@ function rank(list, tuning){
   return list.slice().sort((a,b)=>
     top(a)-top(b) || opens(b)-opens(a) || notes(b)-notes(a));
 }
+
+/* ---------------------------------------------------------------
+   Acordes do caderno. Duas folhas de campo harmônico trazem uma
+   digitação escolhida a dedo para cada grau em cada tom — não a que
+   o CAGED deduz, mas a que o professor manda tocar. Nas tétrades é
+   onde a diferença aparece: vozes de quatro notas com cordas
+   abafadas no meio, que o gerador nunca produz porque ele prefere
+   formas cheias, de cinco e seis cordas.
+
+   Cada forma é uma string de seis caracteres, da 6ª corda para a 1ª:
+   'x' é corda que não soa, dígito é a casa. Nenhuma passa da 6ª casa,
+   por isso um dígito basta. A chave de fora é a classe de altura do
+   TOM — não a do acorde —, a de dentro é o índice do grau, de 0 a 6.
+----------------------------------------------------------------*/
+const CADERNO = {
+  tri: {
+     0:['x32010','xx0231','022000','133211','320003','x02210','x2343x'],  /* dó  */
+     2:['xx0232','022000','244222','320003','x02220','x24432','x4565x'],  /* ré  */
+     4:['022100','244222','466444','x02220','x24442','x46654','xx1242'],  /* mi  */
+     5:['133211','355333','x02210','x13331','x32010','xx0231','xx2353'],  /* fá  */
+     7:['320003','x02210','x24432','x32010','xx0232','022000','2342xx'],  /* sol */
+     9:['x02220','x24432','x46654','xx0232','022100','244222','4564xx'],  /* lá  */
+    11:['x24442','x46654','xx1342','022100','244322','466444','x1232x'],  /* si  */
+    10:['x13331','x35543','xx0231','xx1343','133211','355333','x0121x'],  /* si♭ */
+     3:['xx1343','133111','355333','466544','x13331','x35543','xx0131']   /* mi♭ */
+  },
+  tet: {
+     0:['x32000','xx0211','022030','1x221x','3x343x','x02010','x2323x'],  /* dó  */
+     2:['xx0222','022030','2x222x','3x443x','x02020','x20232','x4545x'],  /* ré  */
+     4:['0x2444','2x222x','4x444x','x02120','x21202','x46454','xx1222'],  /* mi  */
+     5:['1x221x','3x333x','x02010','x13231','x32310','xx0211','xx2333'],  /* fá  */
+     7:['3x443x','x02010','x20232','x32000','xx0212','022030','2x221x'],  /* sol */
+     9:['x02120','x20232','x46454','xx0222','020130','2x222x','4x443x'],  /* lá  */
+    11:['x24342','x46454','xx1322','0x2444','242322','4x444x','x1212x'],  /* si  */
+    10:['x13231','x35343','xx0211','xx1333','131211','3x333x','5x554x'],  /* si♭ */
+     3:['xx1333','1x111x','3x333x','4x554x','x13131','x35343','xx0111']   /* mi♭ */
+  }
+};
+
+/* O caderno cobre nove tons, só a escala maior e só a afinação padrão.
+   Fora disso devolve null e quem chama segue com as formas geradas —
+   é o app de antes, sem aviso e sem digitação inventada. */
+function cadernoFrets(scaleId, tuningId, keyPc, tetrad, idx){
+  if (scaleId !== 'maior' || tuningId !== 'std') return null;
+  const tab = CADERNO[tetrad ? 'tet' : 'tri'][keyPc];
+  if (!tab || idx == null || !tab[idx]) return null;
+  return tab[idx].split('').map(c => c === 'x' ? null : +c);
+}
+
+/* A casa da fundamental é a da corda mais grave que soa a fundamental.
+   O chip anuncia essa casa, então tem de ser a de verdade, não a menor. */
+function rootFretOf(frets, tuning, rootPc){
+  for (let s=0; s<6; s++)
+    if (frets[s] !== null && (tuning[s]+frets[s])%12 === rootPc) return frets[s];
+  return null;
+}
+
 /*==voicing-end==*/
 
 /*==recog-start==*/
@@ -947,7 +1043,10 @@ const state = {
   chordPc: 0, chordLetter: 0, chordAcc: 0,
   adhocFrom: null,     // {idx, tet} — de qual grau do campo veio o acorde
   picked: [],          // [{s,f}] — montagem à mão, só no modo acorde
-  tetrad: false, view: 'forma', formIdx: 0
+  tetrad: false, view: 'forma', formIdx: 0,
+  /* cada card lembra se está aberto. Nada disso sobrevive a um recarregamento,
+     igual ao resto do app. */
+  open: { tom:true, desenhar:true, comp:true, field:true, inst:true }
 };
 const INLAY_SINGLE = [3,5,7,9,15,17,19,21];
 const INLAY_DOUBLE = [12,24];
@@ -1051,13 +1150,43 @@ let shapeCache = null;
 function shapes(set){
   if (!set.chord || set.picked) return [];
   if (shapeCache && shapeCache.key === cacheKey()) return shapeCache.list;
-  const list = chordShapes(set.pairs, state.chordPc, state.tuning.midi, state.frets);
+  let list = chordShapes(set.pairs, state.chordPc, state.tuning.midi, state.frets);
+  /* o caderno entra na frente, e a forma gerada idêntica sai de cena: como
+     setChordFromField zera o formIdx, quem clica no grau já cai na digitação
+     da folha, e o resto do app — pintura, chips, som — segue lendo a mesma
+     lista de sempre, sem saber de onde veio a primeira. */
+  const cad = cadernoForm(set);
+  if (cad) list = [cad, ...list.filter(v => v.frets.join() !== cad.frets.join())];
   shapeCache = { key: cacheKey(), list };
   return list;
 }
+
+/* A digitação da folha, quando existe para este grau neste tom. Passa pela
+   mesma peneira das formas geradas: se não descrever este acorde nesta
+   afinação, não entra — e o app volta a ser o de antes, sem aviso. */
+function cadernoForm(set){
+  if (!state.adhocFrom) return null;
+  const frets = cadernoFrets(state.scaleId, state.tuning.id, state.keyPc,
+                             state.adhocFrom.tet, state.adhocFrom.idx);
+  if (!frets) return null;
+  if (Math.max(...frets.filter(f => f !== null)) > state.frets) return null;
+  const tun  = state.tuning.midi;
+  const pcs  = new Set(set.pairs.map(p => ((state.chordPc+p[1])%12+12)%12));
+  const need = new Set(set.pairs.filter(p => p[0]!==5)
+                        .map(p => ((state.chordPc+p[1])%12+12)%12));
+  if (!valid(frets, tun, pcs, need, state.chordPc)) return null;
+  return { name:'do caderno', rootFret:rootFretOf(frets, tun, state.chordPc), frets };
+}
+
+/* O grau e a espécie entram na chave. O algarismo romano sozinho não separa
+   tríade de tétrade — I é I nas duas — e sem isso trocar de espécie devolvia
+   a lista da anterior: o braço desenhava a tríade sob o cabeçalho da tétrade,
+   com a sétima marcada "omitida". */
 function cacheKey(){
   return [state.chordPc, state.kind, state.chordId,
           state.adhoc ? (state.adhoc.sig||state.adhoc.num) : '-',
+          state.adhocFrom ? state.adhocFrom.idx+':'+state.adhocFrom.tet : '-',
+          state.keyPc, state.scaleId,
           state.tuning.id, state.frets].join('|');
 }
 
@@ -1245,7 +1374,7 @@ function onKey(e){
    Composição
 ========================================================= */
 function drawComp(set, list, shape){
-  const box = document.getElementById('composicao');
+  const box = document.getElementById('sec-comp');
   const where = new Map();
   if (set.picked){
     state.picked.forEach(p=>{ const pc=pcAt(p.s,p.f);
@@ -1564,6 +1693,28 @@ function syncProse(){
   b.textContent = state.prose ? 'explicações' : 'sem explicações';
 }
 btn('btn-prose').addEventListener('click', ()=>{ state.prose=!state.prose; syncProse(); });
+/* recolher um card é o mesmo truque da prosa, por seção: cada card tem um
+   corpo próprio que nenhum renderizador reescreve, então o [hidden] aguenta
+   repintura sem precisar ser reaplicado a cada paint. */
+function syncOpen(){
+  document.querySelectorAll('[data-sec]').forEach(b=>{
+    const k = b.dataset.sec, aberto = !!state.open[k];
+    b.setAttribute('aria-expanded', String(aberto));
+    const corpo = document.getElementById('sec-'+k);
+    if (corpo) corpo.hidden = !aberto;
+  });
+}
+document.querySelectorAll('[data-sec]').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const k = b.dataset.sec;
+    state.open[k] = !state.open[k];
+    /* o afinador escuta o microfone: fechar o card sem desligar deixaria o
+       indicador do sistema aceso e o timer moendo áudio atrás de uma seção
+       que ninguém vê */
+    if (k === 'inst' && !state.open.inst && tun.t) tunerOff();
+    syncOpen();
+  });
+});
 btn('btn-hear').addEventListener('click', ()=>{ state.sound=true; syncSound(); hearSet(); });
 btn('btn-unpick').addEventListener('click', ()=>{ clearPick(); paint(); });
 /* Esc limpa a montagem de qualquer lugar. Ignoro quando o foco está num
@@ -1768,9 +1919,16 @@ btn('btn-ref').addEventListener('click', ()=>{
    indicador aceso e a bateria escorrendo */
 document.addEventListener('visibilitychange', ()=>{ if (document.hidden && tun.t) tunerOff(); });
 
+/* no celular o afinador é outra tarefa: chega recolhido para o braço e o
+   campo harmônico caberem na primeira tela */
+if (window.matchMedia &&
+    window.matchMedia('(max-width:760px), (pointer:coarse)').matches)
+  state.open.inst = false;
+
 buildRoots();
 buildBoard();
 syncProse();
+syncOpen();
 buildArc();
 buildTunerStrings();
 drawTuner(null);

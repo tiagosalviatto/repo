@@ -61,10 +61,10 @@ click(degBtn(2)); eq([banner(),tomMarcado()],['Em7','C'],'grau iii: idem');
 
 console.log('\n[Q] Graus do acorde são lidos como fundamental, não como tônica');
 click(degBtn(4));
-eq(graus(),['T | G | fundamental do acorde | 3ª, 6ª',
-            '3 | B | terça maior | 2ª, 5ª',
-            '5 | D | quinta justa | 4ª',
-            '♭7 | F | sétima menor | 1ª'],'tabela do G7 na forma 320001, grau por corda');
+eq(graus(),['T | G | fundamental do acorde | 6ª',
+            '3 | B | terça maior | 3ª',
+            '5 | D | quinta justa | 2ª',
+            '♭7 | F | sétima menor | 4ª'],'tabela do G7 na voz do caderno, grau por corda');
 click(kindChip('nota'));
 eq(graus()[0],'T | C | tônica','fora de acorde a nota 1 volta a se chamar tônica');
 click(kindChip('acorde'));
@@ -301,6 +301,72 @@ setTimeout(()=>{
      'clicar nele funciona sem microfone nenhum');
   click(d.getElementById('btn-tuner-off'));
   eq([gauge().hidden,marcada()],[true,'(nenhuma)'],'parar fecha o mostrador e solta a corda');
+
+  console.log('\n[X] Acordes do caderno: a digitação da folha vem na frente');
+  const chips=()=>[...d.querySelectorAll('#composicao [data-form]')].map(b=>b.textContent.trim());
+  /* lê do braço, não do estado: monta a cifra de casas a partir do que acendeu */
+  const forma=()=>{const m=new Array(6).fill('x');
+    lit().forEach(x=>{ m[+x.dataset.s]=x.dataset.f; }); return m.join('');};
+  click(d.getElementById('btn-clear'));
+  click(rootChip(0)); setSel('sel-key','maior');
+  click(d.getElementById('btn-tet')); click(degBtn(4));
+  eq([banner(),chips()[0]],['G7','do caderno · 3ª'],
+     'grau V em dó, tétrades: a folha manda, e o chip diz de onde a forma veio');
+  eq(forma(),'3x343x','o braço acende a voz de quatro notas da folha, não a 320001 gerada');
+  click(d.querySelectorAll('#composicao [data-form]')[1]);
+  eq(forma()!=='3x343x',true,'o chip ao lado devolve a forma CAGED: as duas convivem');
+  click(degBtn(4)); setSel('sel-tuning','dropd');
+  eq(chips()[0]==='do caderno · 3ª',false,
+     'fora da afinação padrão a folha não vale e o app volta a ser o de antes');
+  setSel('sel-tuning','std'); click(degBtn(4));
+  eq(chips()[0],'do caderno · 3ª','de volta ao padrão, de volta o caderno');
+  setSel('sel-key','harmonica'); click(degBtn(4));
+  eq(chips()[0]==='do caderno · 3ª',false,'as folhas são de escala maior: fora dela, nada');
+  setSel('sel-key','maior');
+  click(rootChip(1)); click(d.getElementById('btn-tet')); click(degBtn(0));
+  eq(chips()[0]==='do caderno · 3ª',false,'e num tom que as folhas não cobrem, também nada');
+
+  console.log('\n[Y] Trocar de espécie recalcula as formas, não serve o cache');
+  click(rootChip(0));
+  click(d.getElementById('btn-tri')); click(degBtn(0));
+  eq(banner(),'C','tríade do grau I em dó');
+  click(d.getElementById('btn-tet')); click(degBtn(0));
+  eq([banner(),chips().includes('ré · 10ª')],['Cmaj7',true],
+     'I é I nas duas espécies: sem o grau na chave, a tétrade herdava a lista da tríade');
+  eq(graus().some(g=>/omitida/.test(g)),false,
+     'e a sétima do Cmaj7 não aparece como omitida, que era o sintoma na tela');
+
+  console.log('\n[Z] Recolher seção por seção');
+  const SECS=['tom','desenhar','comp','field','inst'];
+  const secBtn=k=>d.querySelector('[data-sec="'+k+'"]');
+  const corpo=k=>d.getElementById('sec-'+k);
+  eq(SECS.map(k=>!!secBtn(k)&&!!corpo(k)),[true,true,true,true,true],
+     'cinco cartões com cabeçalho que recolhe; o braço não recolhe');
+  eq(SECS.map(k=>corpo(k).hidden),[false,false,false,false,false],
+     'no desktop todos abrem abertos');
+  click(secBtn('field'));
+  eq([corpo('field').hidden,secBtn('field').getAttribute('aria-expanded')],[true,'false'],
+     'um clique fecha o campo harmônico e anuncia isso a quem usa leitor de tela');
+  click(dot(1,3));
+  eq(corpo('field').hidden,true,'repintar o braço não reabre o que eu fechei');
+  click(secBtn('field'));
+  eq([corpo('field').hidden,d.querySelectorAll('#field-list .deg-btn').length],[false,7],
+     'o mesmo cabeçalho devolve os sete graus inteiros');
+  click(secBtn('comp'));
+  eq(corpo('comp').hidden,true,'a composição também, e ela é reescrita a cada pintura');
+  click(kindChip('acorde'));
+  eq([corpo('comp').hidden,!!d.querySelector('#composicao .name')],[true,true],
+     'segue fechada, e o conteúdo continua no documento por baixo');
+  click(secBtn('comp'));
+  /* o afinador é a única seção que segura um recurso do aparelho */
+  click(d.querySelectorAll('#tuner-strings .chip')[0]);
+  eq(d.getElementById('gauge').hidden,false,'escolher a corda abre o mostrador do afinador');
+  click(secBtn('inst'));
+  eq([d.getElementById('gauge').hidden,
+      [...d.querySelectorAll('#tuner-strings .chip')]
+        .some(x=>x.getAttribute('aria-pressed')==='true')],[true,false],
+     'recolher o Instrumento desliga o afinador: microfone aberto atrás de card fechado, não');
+  click(secBtn('inst'));
 
   console.log('\n[W] Nenhum erro de execução no caminho todo');
   eq(errs,[], 'zero exceções lançadas');

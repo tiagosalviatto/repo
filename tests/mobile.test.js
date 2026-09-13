@@ -37,6 +37,11 @@ eq(/\d\s*vh/.test(cssNu),false,'nenhum vh em nenhuma declaração do arquivo');
 eq(/\d\s*vw/.test(rootVars),true,'as variáveis escalam por largura, que é estável');
 eq(/--cell:46px/.test(css),true,'altura da casa em px fixo no celular');
 
+console.log('\n[BD2] Cabeçalho que recolhe também é controle de toque');
+eq(/h2\.lbl\.sec>button\{min-height:40px/.test(cssNu.replace(/\s+/g,'')),true,
+   'no celular o cabeçalho recolhível ganha 40px de alvo, como os outros controles');
+eq(/aria-expanded/.test(html),true,'e anuncia aberto/fechado por aria-expanded');
+
 console.log('\n[BD] O braço caber na tela: aritmética por aparelho');
 /* --lane: clamp(44px, (100vw - 66px)/6, 58px); coluna de números = 2rem = 32px;
    padding da página no celular = 14px de cada lado */

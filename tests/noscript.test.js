@@ -19,6 +19,11 @@ eq(!!off.querySelector('noscript style'),true,'e esconde a casca vazia da interf
 eq(/#btn-prose/.test(off.querySelector('noscript style').textContent),true,
    'inclusive o botão de recolher texto, que sem script não recolheria nada');
 eq(off.querySelector('header.top p').hidden,false,'o texto do topo segue legível');
+const secs=[...off.querySelectorAll('[data-sec]')];
+eq(secs.length,5,'cinco cabeçalhos que recolhem');
+eq(secs.every(b=>b.closest('.deck,.stage,.foot')!==null),true,
+   'todos moram dentro de .deck/.stage/.foot, que o noscript já esconde inteiros — '
+   +'um deles no header, como o btn-prose, precisaria de regra própria');
 
 console.log('\n[CB] Script LIGADO — o mesmo arquivo, funcionando');
 const on=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,

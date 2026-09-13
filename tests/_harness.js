@@ -21,6 +21,7 @@ const EXPORTS = [
   'ivShort','IV_NAMES','ivName','fnOf','SCALES','CHORDS','TUNINGS',
   'TRIAD_NAMES','TETRA_NAMES','harmonicField','degreeFromStack',
   'FORMS','sigOf','FORMS_BY_SIG','chordShapes','valid','searchShapes','rank',
+  'CADERNO','cadernoFrets','rootFretOf',
   'RECOGNIZE','REC_BY_SIG','identify',
   'hzOfMidi','centsBetween','tuneTargets','rmsOf','ncorr','detectNear','medianOf',
   'arcIndex','TUNE_SPAN_CENTS','TUNE_OK_CENTS','TUNE_MIN_RMS','TUNE_MIN_CLARITY',
