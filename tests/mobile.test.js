@@ -15,6 +15,11 @@ eq(/viewport-fit=cover/.test(meta('viewport')),true,'viewport-fit=cover (área s
 eq(meta('apple-mobile-web-app-capable'),'yes','abre em tela cheia se salvar na tela de início');
 eq(meta('apple-mobile-web-app-title'),'braço','nome do ícone');
 eq(!!meta('theme-color'),true,'cor da barra do navegador');
+/* a barra do navegador não lê CSS: precisa de uma meta por esquema, senão
+   o topo da tela fica claro com a página escura */
+const barras=[...html.matchAll(/<meta name="theme-color" content="(#[0-9A-Fa-f]{6})" media="\(prefers-color-scheme: (\w+)\)"/g)]
+  .map(m=>m[2]+':'+m[1]);
+eq(barras,['light:#DEDDD6','dark:#171613'],'uma cor de barra por esquema, na ordem clara e escura');
 
 console.log('\n[BB] Armadilhas do Safari do iPhone');
 eq(/select\{[^}]*font-size:16px/.test(css.replace(/\s+/g,'')),true,

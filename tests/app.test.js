@@ -273,6 +273,40 @@ eq([recolhidos(),btnProse.textContent],[0,'explicações'],'o mesmo botão devol
 eq(/Clique numa casa/.test(d.getElementById('hint').textContent),true,
    'e a dica do modo uma nota voltou inteira');
 
+console.log('\n[AG] Tema e estilo de braço: dois eixos que não se conhecem');
+const raiz=()=>d.documentElement.dataset.theme || '(sem atributo)';
+const braco=()=>d.getElementById('board').dataset.neck;
+const btnTema=d.getElementById('btn-theme'), btnBraco=d.getElementById('btn-neck');
+eq([raiz(),btnTema.textContent],['(sem atributo)','tema: sistema'],
+   'abre seguindo o sistema — sem atributo, o CSS decide sozinho pelo prefers-color-scheme');
+click(btnTema);
+eq([raiz(),btnTema.textContent],['claro','tema: claro'],'primeiro clique: claro explícito');
+click(btnTema);
+eq([raiz(),btnTema.textContent],['escuro','tema: escuro'],'segundo: escuro explícito');
+click(btnTema);
+eq([raiz(),btnTema.textContent],['(sem atributo)','tema: sistema'],'terceiro devolve ao sistema');
+/* a barra do navegador não lê CSS: das duas metas, só uma pode valer */
+const midias=()=>[...d.querySelectorAll('meta[name="theme-color"]')].map(m=>m.getAttribute('media'));
+eq(midias(),['(prefers-color-scheme: light)','(prefers-color-scheme: dark)'],
+   'no sistema as duas metas ficam com a mídia original');
+click(btnTema); click(btnTema);
+eq([raiz(),midias()],['escuro',['not all','all']],
+   'em escuro explícito só a meta escura vale, e a clara é desligada');
+click(btnTema);
+eq(midias(),['(prefers-color-scheme: light)','(prefers-color-scheme: dark)'],'e voltam ao sistema');
+eq(braco(),'jacaranda','o braço abre em jacarandá');
+eq([1,2,3,4].map(()=>{click(btnBraco); return braco();}),
+   ['ebano','maple','traco','jacaranda'],'quatro estilos em ciclo, e volta pro começo');
+click(btnBraco);
+eq([braco(),btnBraco.textContent],['ebano','estilo: ébano'],'o rótulo acompanha, com acento');
+/* trocar o número de casas remonta o braço inteiro por innerHTML */
+setSel('sel-frets','22');
+eq([braco(),d.querySelectorAll('.dot').length],['ebano',6*23],'remontar o braço não perde o estilo');
+setSel('sel-frets','12');
+eq([raiz(),braco()],['(sem atributo)','ebano'],'e os dois eixos seguem independentes');
+click(btnBraco); click(btnBraco); click(btnBraco);
+eq(braco(),'jacaranda','de volta ao jacarandá');
+
 console.log('\n[AF] Afinador: alvos, rótulos e o caminho de falha');
 const cordas=()=>[...d.querySelectorAll('#tuner-strings .chip')].map(b=>b.textContent);
 const gauge=()=>d.getElementById('gauge');
