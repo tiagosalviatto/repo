@@ -21,6 +21,24 @@ const barras=[...html.matchAll(/<meta name="theme-color" content="(#[0-9A-Fa-f]{
   .map(m=>m[2]+':'+m[1]);
 eq(barras,['light:#DEDDD6','dark:#171613'],'uma cor de barra por esquema, na ordem clara e escura');
 
+console.log('\n[BA2] O ícone do atalho na tela de início');
+/* sem apple-touch-icon o iOS desenha um ladrilho com a inicial do site. As
+   duas falhas clássicas são caminho errado e PNG com transparência, que no
+   iOS vira preto — as duas se conferem daqui, lendo o cabeçalho do arquivo. */
+const fs=require('fs'), path=require('path');
+const linkIcone=html.match(/<link rel="apple-touch-icon"[^>]*href="([^"]+)"/);
+eq(!!linkIcone,true,'existe <link rel="apple-touch-icon"> — é daí que o atalho tira a imagem');
+const arqIcone=path.join(__dirname,'..',linkIcone[1]);
+eq(fs.existsSync(arqIcone),true,'e o arquivo apontado existe de verdade: '+linkIcone[1]);
+const png=fs.readFileSync(arqIcone);
+eq(png.slice(1,4).toString(),'PNG','é PNG — o iOS não aceita SVG em apple-touch-icon');
+const larg=png.readUInt32BE(16), alt=png.readUInt32BE(20), tipoCor=png[25];
+eq([larg,alt],[180,180],'180x180, que é o tamanho de tela @3x; o iOS reduz para os outros');
+eq([4,6].includes(tipoCor),false,'sem canal alfa (tipo de cor '+tipoCor+'): transparência no iOS vira preto');
+eq(png.includes(Buffer.from('tRNS')),false,'e sem transparência de paleta, pelo mesmo motivo');
+eq(/<link rel="apple-touch-icon"[^>]*href="(https?:|\/)/.test(html),false,
+   'caminho relativo: o atalho tem de achar o ícone tanto em /repo/ quanto em /repo/index.html');
+
 console.log('\n[BB] Armadilhas do Safari do iPhone');
 eq(/select\{[^}]*font-size:16px/.test(css.replace(/\s+/g,'')),true,
    'select em 16px: abaixo disso o iOS dá zoom ao focar');

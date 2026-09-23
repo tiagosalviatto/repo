@@ -1,6 +1,6 @@
 # braço
 
-Explorador de braço de violão. Um arquivo, sem dependência de runtime, sem build.
+Explorador de braço de violão. Um arquivo, sem dependência de runtime, sem build. O único outro arquivo é `icone-180.png`, que não é do app: é o que o iOS desenha no atalho da tela de início.
 
 - Clique numa nota e todas as iguais acendem no braço inteiro.
 - Escolha um acorde e veja **a forma que se toca**, não o arpejo espalhado. As outras formas ficam em botões, nomeadas pela corda que carrega a fundamental (CAGED).
@@ -32,6 +32,27 @@ Abrir `index.html` no navegador basta. Três ressalvas:
 
 Depois de cada push, o Safari pode servir a versão em cache. Recarregar com a página aberta resolve; se estiver salvo na tela de início, apagar o ícone e adicionar de novo.
 
+### O ícone do atalho
+
+Quem decide a imagem do atalho é uma linha no `<head>`:
+
+```html
+<link rel="apple-touch-icon" href="icone-180.png">
+```
+
+Sem ela o iOS não tem o que desenhar e inventa um ladrilho cinza com a inicial do site. É o mesmo mecanismo de qualquer site que tenha ícone bonito no atalho — o WordPress, por exemplo, serve o dele assim, apontando para o gravatar do blog.
+
+Quatro regras que o iOS impõe e que não dá para descobrir testando no desktop:
+
+- **PNG, nunca SVG.** O iOS ignora vetor aqui.
+- **Opaco.** Transparência vira preto, então a arte já vem com fundo — aqui, o `--wood-2` da paleta, com o violão na cor dos marcadores.
+- **Sem arredondar o canto.** A máscara é do sistema; cantos redondos na arte virariam canto duplo. A arte entra quadrada, com ~13% de folga nas bordas, senão a máscara come a cabeça do braço.
+- **180×180** cobre tudo: é o tamanho de tela @3x e o iOS reduz sozinho para os aparelhos menores.
+
+O ícone foi gerado de um desenho de violão em preto e branco: recorta a caixa da arte, redimensiona para 78% do quadrado com Lanczos num tamanho 6× maior, pinta a máscara de `#EDE7D9` sobre `#241B18` e só então reduz para 180. Reduzir por último é o que evita serrilhar as cordas e o braço, que têm um pixel de largura.
+
+**O iOS guarda o ícone na hora em que você adiciona o atalho e nunca mais olha.** Trocar a imagem no site não muda um atalho que já existe: é preciso apagar o ícone da tela de início e adicionar de novo.
+
 ## Testes
 
 ```
@@ -39,7 +60,7 @@ npm install
 npm test
 ```
 
-454 asserções em dez suítes:
+461 asserções em dez suítes:
 
 | suíte | o que cobre |
 |---|---|
@@ -51,7 +72,7 @@ npm test
 | `contrast.test.js` | a matriz de 4 braços × 2 temas: o anel de foco em cada fundo, mínimo 3:1 da WCAG, e o texto em 4,5:1 nos dois temas |
 | `tuner.test.js` | o afinador em sinal sintético: seis cordas em duas taxas de amostragem, harmônicos sem fundamental, decaimento de nylon, ruído de sala, a mediana e o arco |
 | `app.test.js` | o app rodando em jsdom: 160 asserções sobre cliques, teclas e o que aparece na tela, incluindo o acorde do caderno, o recolher por seção e a regressão do cache de formas |
-| `mobile.test.js` | aritmética de largura por aparelho, alvos de toque, metas do iOS, ausência de `vh`, altura poupada ao recolher os textos e as seções |
+| `mobile.test.js` | aritmética de largura por aparelho, alvos de toque, metas do iOS, o ícone do atalho (existe, é PNG, 180×180 e opaco), ausência de `vh`, altura poupada ao recolher os textos e as seções |
 | `noscript.test.js` | o mesmo arquivo com script ligado e desligado |
 
 ### Por que os testes leem o HTML

@@ -8,6 +8,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="braço">
+<!-- Sem esta linha o iOS não tem o que desenhar no atalho e inventa um
+     ladrilho com a inicial do site — era de onde vinha o "B". O caminho é
+     relativo à página, então vale igual em /repo/ e em /repo/index.html.
+     O iOS aplica a máscara de canto arredondado sozinho: a arte entra
+     quadrada e com folga nas bordas, senão a máscara come a cabeça do
+     braço. PNG opaco, porque transparência no iOS vira preto. -->
+<link rel="apple-touch-icon" href="icone-180.png">
+<link rel="icon" type="image/png" sizes="180x180" href="icone-180.png">
 <title>braço — explorador de escalas e acordes no violão</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
