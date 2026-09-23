@@ -75,7 +75,7 @@ const dom=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,
   beforeParse(w){w.AudioContext=undefined;w.webkitAudioContext=undefined;}});
 const w=dom.window,d=w.document;
 eq(!!d.querySelector('.board-wrap #board'),true,'o braço está dentro do contêiner de rolagem');
-eq(d.querySelectorAll('.dot').length,78,'78 casas montadas');
+eq(d.querySelectorAll('.dot').length,60,'60 casas montadas — o padrão são 9 casas');
 const dot=(s,f)=>[...d.querySelectorAll('.dot')].find(x=>+x.dataset.s===s&&+x.dataset.f===f);
 dot(0,3).dispatchEvent(new w.MouseEvent('click',{bubbles:true}));
 eq(d.querySelector('#composicao .name').textContent.trim(),'G','clicar ainda funciona');

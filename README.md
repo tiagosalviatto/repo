@@ -10,7 +10,8 @@ Explorador de braço de violão. Um arquivo, sem dependência de runtime, sem bu
 - Som de corda pinçada por Karplus-Strong, sem nenhum arquivo de áudio.
 - **Tema claro, escuro ou o do sistema**, e **quatro estilos de braço** — jacarandá, ébano, maple e traço. São dois eixos independentes: maple clara com tema escuro é combinação legítima, e as oito combinações têm o contraste do anel de foco provado em teste.
 - **Afinador** de corda solta: escolha a corda, toque ela e o arco mostra quantos cents falta. Os alvos saem da afinação escolhida, então Drop D e DADGAD valem igual. Sem microfone liberado, o botão de tom de referência toca a corda para você afinar de ouvido.
-- Os textos de instrução recolhem num botão só (**explicações**, no topo), para quem já sabe como o app funciona e quer a tela inteira para o braço.
+- Os textos de instrução ficam atrás do botão **documentação**, no topo, e o app **abre com eles apagados** — quem voltou já sabe usar e quer a tela para o braço. O botão é aceso ou apagado, sem trocar de nome.
+- O braço **abre com 9 casas**, que é o que cabe numa tela de celular sem rolagem lateral. Em 9 casas nem toda forma cabe: o C7, por exemplo, mostra três das cinco. Esticar para 12, 15 ou 22 no cartão Instrumento devolve as que faltavam.
 - **Cada seção recolhe pelo próprio cabeçalho**, que é o que torna o app usável de celular: dá para deixar só o braço e o campo harmônico abertos. No celular o afinador já chega recolhido, porque é outra tarefa.
 
 ## Rodar
@@ -38,7 +39,7 @@ npm install
 npm test
 ```
 
-453 asserções em dez suítes:
+454 asserções em dez suítes:
 
 | suíte | o que cobre |
 |---|---|
@@ -49,7 +50,7 @@ npm test
 | `build.test.js` | regra de uma casa por corda; toda forma do catálogo, montada a mão, se reconhece |
 | `contrast.test.js` | a matriz de 4 braços × 2 temas: o anel de foco em cada fundo, mínimo 3:1 da WCAG, e o texto em 4,5:1 nos dois temas |
 | `tuner.test.js` | o afinador em sinal sintético: seis cordas em duas taxas de amostragem, harmônicos sem fundamental, decaimento de nylon, ruído de sala, a mediana e o arco |
-| `app.test.js` | o app rodando em jsdom: 159 asserções sobre cliques, teclas e o que aparece na tela, incluindo o acorde do caderno, o recolher por seção e a regressão do cache de formas |
+| `app.test.js` | o app rodando em jsdom: 160 asserções sobre cliques, teclas e o que aparece na tela, incluindo o acorde do caderno, o recolher por seção e a regressão do cache de formas |
 | `mobile.test.js` | aritmética de largura por aparelho, alvos de toque, metas do iOS, ausência de `vh`, altura poupada ao recolher os textos e as seções |
 | `noscript.test.js` | o mesmo arquivo com script ligado e desligado |
 

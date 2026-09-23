@@ -28,14 +28,15 @@ eq(secs.every(b=>b.closest('.deck,.stage,.foot')!==null),true,
 console.log('\n[CB] Script LIGADO — o mesmo arquivo, funcionando');
 const on=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,
   beforeParse(w){w.AudioContext=undefined;w.webkitAudioContext=undefined;}}).window.document;
-eq(on.querySelectorAll('.dot').length,78,'78 casas montadas');
+eq(on.querySelectorAll('.dot').length,60,'60 casas montadas — o padrão são 9 casas');
 eq([...on.querySelectorAll('#sel-chord option')].length,16,'16 acordes no dropdown');
 eq([...on.querySelectorAll('#sel-key option')].length,4,'4 espécies de tom');
 eq(on.querySelectorAll('#roots .chip').length,12,'12 botões de tônica');
 eq(on.querySelectorAll('#field-list .deg-btn').length,7,'7 graus no campo harmônico');
 eq(on.querySelector('#composicao .name').textContent.trim(),'C','composição preenchida');
 eq(on.querySelector('.nojs'),null,'com script, o aviso nem existe no documento');
-eq([on.getElementById('btn-prose').textContent,on.querySelectorAll('.prose').length],
-   ['explicações',2],'e o botão de recolher texto assume os dois parágrafos');
+eq([on.getElementById('btn-prose').textContent,on.getElementById('btn-prose').getAttribute('aria-pressed'),
+    on.querySelectorAll('.prose').length],
+   ['documentação','false',2],'o botão de documentação assume os dois parágrafos, e abre apagado');
 console.log(fail? '\n>>> '+fail+' falha(s)':'\n>>> todos passaram');
 process.exit(fail?1:0);

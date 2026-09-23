@@ -31,13 +31,13 @@ const graus=()=>[...d.querySelectorAll('#composicao table.tones tr')].map(tr=>
   [...tr.children].map(td=>td.textContent.trim()).join(' | '));
 
 console.log('\n[N] O app carrega e pinta');
-eq(d.querySelectorAll('.dot').length,78,'78 casas (6 cordas x 13 posições)');
+eq(d.querySelectorAll('.dot').length,60,'60 casas: o braço abre com 9, que é o que cabe na tela do celular');
 eq([banner(),tomMarcado()],['C','C'],'abre em dó, modo uma nota');
-eq(lit().length,6,'6 dós num braço de 12 casas');
+eq(lit().length,5,'5 dós num braço de 9 casas');
 
 console.log('\n[O] Modo uma nota: intocado');
 click(dot(0,3));
-eq([banner(),tomMarcado(),lit().length],['G','G',7],'cliquei G na 6ª/3ª: tom G, 7 sóis (a 3ª corda dá sol na casa 0 e na 12)');
+eq([banner(),tomMarcado(),lit().length],['G','G',5],'cliquei G na 6ª/3ª: tom G, 5 sóis em 9 casas');
 click(rootChip(0));
 eq(banner(),'C','botão de tônica volta pra C');
 
@@ -112,7 +112,13 @@ setSel('sel-chord','7');
 eq(banner(),'C7','dropdown troca a qualidade na fundamental atual');
 const formas=[...d.querySelectorAll('#composicao [data-form]')].map(b=>b.textContent.trim());
 eq(formas[formas.length-1],'braço todo','último chip volta pro braço todo');
-eq(formas.slice(0,-1),['dó · 3ª ○','lá · 3ª','sol · 8ª','mi · 8ª','ré · 10ª'],'5 formas de C7 em 12 casas');
+eq(formas.slice(0,-1),['dó · 3ª ○','lá · 3ª','sol · 8ª'],'3 formas de C7 cabem nas 9 casas do padrão');
+/* o braço curto é o padrão, não um limite do gerador: esticar devolve as
+   formas que não cabiam */
+setSel('sel-frets','12');
+eq([...d.querySelectorAll('#composicao [data-form]')].map(b=>b.textContent.trim()).slice(0,-1),
+   ['dó · 3ª ○','lá · 3ª','sol · 8ª','mi · 8ª','ré · 10ª'],'e 5 quando o braço vai até a 12ª');
+setSel('sel-frets','9');
 eq(lit().length<=6,true,'forma acende '+lit().length+' casas');
 click([...d.querySelectorAll('#composicao [data-act]')].find(b=>b.dataset.act==='editar'));
 eq([banner(),tomMarcado()],['C7','C'],'editar joga a forma na mesa, tom continua marcado');
@@ -252,39 +258,48 @@ eq([banner(),tomMarcado()],['C7','C'],
    'trocar a espécie recoloca o acorde na tônica (dropdown está em 7)');
 eq(d.querySelectorAll('.dot.on').length<=6,true,'mostrando uma forma, não o braço todo');
 
-console.log('\n[AE] Recolher os textos explicativos');
+console.log('\n[AE] Documentação: apagada por padrão, e o rótulo não muda');
 const btnProse=d.getElementById('btn-prose');
 const textos=()=>[...d.querySelectorAll('.prose')];
 const recolhidos=()=>textos().filter(e=>e.hidden).length;
 eq(textos().map(e=>e.id||e.tagName.toLowerCase()),['p','hint'],
-   'dois textos explicativos: o do topo e a dica embaixo do braço');
+   'dois textos de documentação: o do topo e a dica embaixo do braço');
 eq([recolhidos(),btnProse.getAttribute('aria-pressed'),btnProse.textContent],
-   [0,'true','explicações'],'abre mostrando: quem chega na primeira vez lê sem procurar');
+   [2,'false','documentação'],'abre apagada: quem voltou já sabe usar, e a tela é do braço');
 click(btnProse);
 eq([recolhidos(),btnProse.getAttribute('aria-pressed'),btnProse.textContent],
-   [2,'false','sem explicações'],'um clique recolhe os dois de uma vez');
+   [0,'true','documentação'],'um clique traz os dois — e o rótulo continua o mesmo');
 eq(d.getElementById('hint').textContent.length>0,true,
-   'o texto segue no documento, só não ocupa altura');
+   'o texto esteve no documento o tempo todo, só não ocupava altura');
 click(kindChip('acorde')); click(dot(1,3));
-eq(recolhidos(),2,'repintar o braço não reabre o que eu fechei');
+eq([recolhidos(),btnProse.textContent],[0,'documentação'],'repintar o braço não fecha o que eu abri');
 click(d.getElementById('btn-clear'));
 click(btnProse);
-eq([recolhidos(),btnProse.textContent],[0,'explicações'],'o mesmo botão devolve os textos');
+eq([recolhidos(),btnProse.getAttribute('aria-pressed'),btnProse.textContent],
+   [2,'false','documentação'],'e o mesmo botão apaga de novo, sempre com o mesmo nome');
+click(btnProse);
 eq(/Clique numa casa/.test(d.getElementById('hint').textContent),true,
-   'e a dica do modo uma nota voltou inteira');
+   'a dica do modo uma nota está inteira quando volta');
+click(btnProse);
 
 console.log('\n[AG] Tema e estilo de braço: dois eixos que não se conhecem');
 const raiz=()=>d.documentElement.dataset.theme || '(sem atributo)';
 const braco=()=>d.getElementById('board').dataset.neck;
 const btnTema=d.getElementById('btn-theme'), btnBraco=d.getElementById('btn-neck');
-eq([raiz(),btnTema.textContent],['(sem atributo)','tema: sistema'],
-   'abre seguindo o sistema — sem atributo, o CSS decide sozinho pelo prefers-color-scheme');
+/* o botão virou símbolo: o nome do estado passou a morar no aria-label, que é
+   o que um leitor de tela anuncia e o que o title mostra no hover. Símbolo sem
+   nome seria um botão que só quem já sabe consegue usar. */
+const tema=()=>[btnTema.textContent,btnTema.getAttribute('aria-label'),btnTema.getAttribute('title')];
+eq([raiz()].concat(tema()),['(sem atributo)','◐','Tema: sistema','Tema: sistema'],
+   'abre seguindo o sistema, com a meia-lua e o nome no aria-label');
 click(btnTema);
-eq([raiz(),btnTema.textContent],['claro','tema: claro'],'primeiro clique: claro explícito');
+eq([raiz()].concat(tema()),['claro','☀︎','Tema: claro','Tema: claro'],
+   'primeiro clique: sol, e claro explícito');
 click(btnTema);
-eq([raiz(),btnTema.textContent],['escuro','tema: escuro'],'segundo: escuro explícito');
+eq([raiz()].concat(tema()),['escuro','☾','Tema: escuro','Tema: escuro'],
+   'segundo: lua, e escuro explícito');
 click(btnTema);
-eq([raiz(),btnTema.textContent],['(sem atributo)','tema: sistema'],'terceiro devolve ao sistema');
+eq([raiz(),btnTema.textContent],['(sem atributo)','◐'],'terceiro devolve ao sistema');
 /* a barra do navegador não lê CSS: das duas metas, só uma pode valer */
 const midias=()=>[...d.querySelectorAll('meta[name="theme-color"]')].map(m=>m.getAttribute('media'));
 eq(midias(),['(prefers-color-scheme: light)','(prefers-color-scheme: dark)'],
@@ -298,7 +313,9 @@ eq(braco(),'jacaranda','o braço abre em jacarandá');
 eq([1,2,3,4].map(()=>{click(btnBraco); return braco();}),
    ['ebano','maple','traco','jacaranda'],'quatro estilos em ciclo, e volta pro começo');
 click(btnBraco);
-eq([braco(),btnBraco.textContent],['ebano','estilo: ébano'],'o rótulo acompanha, com acento');
+eq([braco(),btnBraco.textContent,btnBraco.getAttribute('aria-label')],
+   ['ebano','ébano','Estilo do braço: ébano'],
+   'o botão mostra só o nome do estilo, e o aria-label diz de que ele é nome');
 /* trocar o número de casas remonta o braço inteiro por innerHTML */
 setSel('sel-frets','22');
 eq([braco(),d.querySelectorAll('.dot').length],['ebano',6*23],'remontar o braço não perde o estilo');

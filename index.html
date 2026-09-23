@@ -149,7 +149,14 @@ label.field{display:block;font-size:12px;color:var(--ink-soft);margin:0 0 3px}
 
 /* ---- barra de controles ---- */
 .deck{display:grid;gap:14px;margin-bottom:18px}
-@media (min-width:800px){.deck{grid-template-columns:minmax(250px,320px) 1fr}}
+@media (min-width:800px){
+  /* a coluna estreita empilha Tom e Instrumento; "O que desenhar" ocupa a
+     larga inteira, senão sobraria um buraco do lado do Instrumento */
+  .deck{grid-template-columns:minmax(250px,320px) 1fr;align-items:start}
+  #card-tom{grid-column:1;grid-row:1}
+  #card-inst{grid-column:1;grid-row:2}
+  #card-draw{grid-column:2;grid-row:1 / span 2}
+}
 .roots{display:grid;grid-template-columns:repeat(12,1fr);gap:3px}
 .roots .chip{padding:7px 0;text-align:center;font-size:12.5px;font-variant-numeric:tabular-nums}
 
@@ -295,11 +302,16 @@ table.tones tr.off td{opacity:.45}
    para fora da tela. O botão no topo recolhe todos de uma vez, pelo
    atributo [hidden], que já tem regra lá em cima. */
 header.top .head-tools{margin-left:auto;align-self:center;display:flex;gap:6px;flex-wrap:wrap}
+/* chip de símbolo: sem o mínimo ele encolhe até virar uma lasca, e o alvo de
+   toque some junto. Quadrado, com o glifo centralizado na altura da linha. */
+.chip.icon{min-width:34px;text-align:center;padding-left:0;padding-right:0;
+  font-size:15px;line-height:1.1}
+@media (max-width:760px), (pointer:coarse){.chip.icon{min-width:40px;font-size:16px}}
 kbd{background:var(--panel-2);border:1px solid var(--hair);border-bottom-width:2px;
   border-radius:var(--r-xs);padding:0 4px;font-family:inherit;font-size:11.5px}
 
 .foot{display:grid;gap:14px;margin-top:22px}
-@media (min-width:800px){.foot{grid-template-columns:minmax(250px,320px) 1fr}}
+/* o rodapé ficou só com o glossário, que usa a largura toda */
 /* ---- afinador ----
    Vive dentro do cartão Instrumento porque é o mesmo assunto do dropdown
    de Afinação, que é de onde saem os seis alvos. */
@@ -396,8 +408,11 @@ details.gloss dd b{color:var(--ink);font-weight:600}
     <h1>braço</h1>
     <p class="prose">Clique numa nota e veja onde ela mora no resto do braço. Escolha um acorde e veja a forma que se toca.</p>
     <span class="head-tools">
-      <button class="chip" id="btn-theme" type="button">tema: sistema</button>
-      <button class="chip" id="btn-prose" type="button" aria-pressed="true">explicações</button>
+      <!-- símbolo sozinho não se lê em leitor de tela nem diz o que faz: o
+           nome vive no aria-label e no title, que ainda serve de dica no hover -->
+      <button class="chip icon" id="btn-theme" type="button"
+              aria-label="Tema: sistema" title="Tema: sistema">◐</button>
+      <button class="chip" id="btn-prose" type="button" aria-pressed="false">documentação</button>
     </span>
   </header>
 
@@ -418,7 +433,7 @@ details.gloss dd b{color:var(--ink);font-weight:600}
 
   <!-- ============ CONTROLES ============ -->
   <div class="deck">
-    <div class="card">
+    <div class="card" id="card-tom">
       <h2 class="lbl sec"><button type="button" data-sec="tom"
           aria-expanded="true" aria-controls="sec-tom">Tom</button></h2>
       <div id="sec-tom">
@@ -434,7 +449,33 @@ details.gloss dd b{color:var(--ink);font-weight:600}
       </div>
       </div>
     </div>
-    <div class="card">
+    <div class="card" id="card-inst">
+      <h2 class="lbl sec"><button type="button" data-sec="inst"
+          aria-expanded="true" aria-controls="sec-inst">Instrumento</button></h2>
+      <div id="sec-inst">
+      <div class="grid2">
+        <div><label class="field" for="sel-tuning">Afinação</label><select id="sel-tuning"></select></div>
+        <div><label class="field" for="sel-frets">Casas</label><select id="sel-frets"></select></div>
+      </div>
+      <div class="tuner">
+        <h3>Afinador — escolha a corda e toque ela solta</h3>
+        <div class="row tight tuner-strings" id="tuner-strings"></div>
+        <div id="gauge" hidden>
+          <div class="arc" id="arc" role="img" aria-labelledby="tuner-read"></div>
+          <div class="read" id="tuner-read" aria-live="polite">
+            <b id="tuner-note">—</b>
+            <span class="cents" id="tuner-cents"></span>
+          </div>
+          <p class="tuner-msg" id="tuner-msg"></p>
+          <div class="row tight">
+            <button class="chip" id="btn-ref" type="button">tom de referência</button>
+            <button class="chip" id="btn-tuner-off" type="button">parar</button>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+    <div class="card" id="card-draw">
       <h2 class="lbl sec"><button type="button" data-sec="desenhar"
           aria-expanded="true" aria-controls="sec-desenhar">O que desenhar</button></h2>
       <div id="sec-desenhar">
@@ -460,7 +501,8 @@ details.gloss dd b{color:var(--ink);font-weight:600}
       <div class="neck-tools">
         <button class="chip" id="btn-orient" type="button">deitar o braço</button>
         <button class="chip" id="btn-names" aria-pressed="true" type="button">notas apagadas</button>
-        <button class="chip" id="btn-neck" type="button">estilo: jacarandá</button>
+        <button class="chip" id="btn-neck" type="button"
+                aria-label="Estilo do braço: jacarandá" title="Estilo do braço: jacarandá">jacarandá</button>
         <button class="chip" id="btn-sound" aria-pressed="true" type="button">som</button>
         <span class="spacer"></span>
         <button class="chip" id="btn-unpick" type="button" hidden>limpar seleção</button>
@@ -498,32 +540,6 @@ details.gloss dd b{color:var(--ink);font-weight:600}
 
   <!-- ============ RODAPÉ ============ -->
   <div class="foot">
-    <div class="card">
-      <h2 class="lbl sec"><button type="button" data-sec="inst"
-          aria-expanded="true" aria-controls="sec-inst">Instrumento</button></h2>
-      <div id="sec-inst">
-      <div class="grid2">
-        <div><label class="field" for="sel-tuning">Afinação</label><select id="sel-tuning"></select></div>
-        <div><label class="field" for="sel-frets">Casas</label><select id="sel-frets"></select></div>
-      </div>
-      <div class="tuner">
-        <h3>Afinador — escolha a corda e toque ela solta</h3>
-        <div class="row tight tuner-strings" id="tuner-strings"></div>
-        <div id="gauge" hidden>
-          <div class="arc" id="arc" role="img" aria-labelledby="tuner-read"></div>
-          <div class="read" id="tuner-read" aria-live="polite">
-            <b id="tuner-note">—</b>
-            <span class="cents" id="tuner-cents"></span>
-          </div>
-          <p class="tuner-msg" id="tuner-msg"></p>
-          <div class="row tight">
-            <button class="chip" id="btn-ref" type="button">tom de referência</button>
-            <button class="chip" id="btn-tuner-off" type="button">parar</button>
-          </div>
-        </div>
-      </div>
-      </div>
-    </div>
     <div class="card">
       <details class="gloss">
         <summary>O que cada palavra quer dizer</summary>
@@ -1113,9 +1129,11 @@ function arcIndex(cents, segments, spanCents){
    Estado
 ========================================================= */
 const state = {
-  tuning: TUNINGS[0], frets: 12, orient: 'v',
-  acc: 'sharp', label: 'nota', showNames: true, sound: true, prose: true,
+  tuning: TUNINGS[0], frets: 9, orient: 'v',
+  acc: 'sharp', label: 'nota', showNames: true, sound: true, prose: false,
   theme: 'sistema', neck: 'jacaranda',
+  /* a prosa ensina na primeira visita; quem voltou já sabe, então ela abre
+     apagada e o botão de documentação a traz de volta quando precisar */
   kind: 'nota', scaleId: 'maior', chordId: 'maj7', adhoc: null,
   /* TOM: centro tonal. Manda na escala, no campo harmônico e na escala
      por trás. Só muda quando VOCÊ manda. */
@@ -1711,7 +1729,7 @@ fill(selTun, TUNINGS, 'std');
    ponto que sobra na tela fica maior no celular. */
 fill(selFret, [{id:'7',name:'7 casas'},{id:'9',name:'9 casas'},
                {id:'12',name:'12 casas'},{id:'15',name:'15 casas'},
-               {id:'22',name:'22 casas'}], '12');
+               {id:'22',name:'22 casas'}], '9');
 
 /* Dó maior e dó menor são tons diferentes, então trocar a espécie conta
    como trocar de tom: o acorde volta pra tônica, pelo mesmo motivo que
@@ -1769,14 +1787,22 @@ btn('btn-orient').addEventListener('click', ()=>{
    Nenhum dos dois toca em cor no JavaScript: um mexe no color-scheme da
    raiz, o outro num data- do braço, e a paleta inteira vem atrás pelo CSS.
    Assim não existe cor escrita em dois lugares que possam discordar. */
-const TEMAS = ['sistema','claro','escuro'];
+/* símbolo, nome e a cor da barra do navegador, um por tema */
+/* meia-lua para "o que o sistema mandar", sol para claro, lua para escuro.
+   O ☀ pede o seletor de variação de texto para não virar emoji colorido em
+   algumas fontes; ◐ e ☾ não têm versão emoji e vão limpos. */
+const TEMAS = [['sistema','◐'],['claro','☀︎'],['escuro','☾']];
 const BRACOS = [['jacaranda','jacarandá'],['ebano','ébano'],
                 ['maple','maple'],['traco','traço']];
 function syncTheme(){
   const r = document.documentElement;
   if (state.theme === 'sistema') delete r.dataset.theme;
   else r.dataset.theme = state.theme;
-  btn('btn-theme').textContent = 'tema: ' + state.theme;
+  const t = TEMAS.find(x=>x[0]===state.theme) || TEMAS[0];
+  const b = btn('btn-theme');
+  b.textContent = t[1];
+  b.setAttribute('aria-label','Tema: '+t[0]);
+  b.setAttribute('title','Tema: '+t[0]);
   /* a barra do navegador no celular não lê CSS: das duas metas, deixo valendo
      a que corresponde à escolha, e devolvo as duas ao sistema quando é ele
      que manda */
@@ -1793,10 +1819,14 @@ function syncTheme(){
 function syncNeck(){
   document.getElementById('board').dataset.neck = state.neck;
   const nome = (BRACOS.find(b=>b[0]===state.neck) || BRACOS[0])[1];
-  btn('btn-neck').textContent = 'estilo: ' + nome;
+  const b = btn('btn-neck');
+  b.textContent = nome;
+  b.setAttribute('aria-label','Estilo do braço: '+nome);
+  b.setAttribute('title','Estilo do braço: '+nome);
 }
 btn('btn-theme').addEventListener('click', ()=>{
-  state.theme = TEMAS[(TEMAS.indexOf(state.theme)+1) % TEMAS.length];
+  const i = TEMAS.findIndex(x=>x[0]===state.theme);
+  state.theme = TEMAS[(i+1) % TEMAS.length][0];
   syncTheme(); });
 btn('btn-neck').addEventListener('click', ()=>{
   const i = BRACOS.findIndex(b=>b[0]===state.neck);
@@ -1815,8 +1845,9 @@ btn('btn-sound').addEventListener('click', ()=>{ state.sound=!state.sound; syncS
 function syncProse(){
   document.querySelectorAll('.prose').forEach(el=>{ el.hidden = !state.prose; });
   const b = btn('btn-prose');
+  /* o rótulo não muda: quem diz se está ligado é o próprio botão aceso,
+     que é o mesmo contrato dos outros chips de estado da barra */
   b.setAttribute('aria-pressed', String(state.prose));
-  b.textContent = state.prose ? 'explicações' : 'sem explicações';
 }
 btn('btn-prose').addEventListener('click', ()=>{ state.prose=!state.prose; syncProse(); });
 /* recolher um card é o mesmo truque da prosa, por seção: cada card tem um
