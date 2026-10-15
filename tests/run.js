@@ -10,7 +10,9 @@ const SUITES = [
   ['montagem',      'build.test.js',     'mesa de montagem: regra de clique e ida-e-volta'],
   ['contraste',     'contrast.test.js',  'visibilidade do anel de foco (WCAG 3:1)'],
   ['afinador',      'tuner.test.js',     'detecção de altura: harmônicos, fundamental fraca, ruído'],
-  ['app',           'app.test.js',       'comportamento no DOM: 146 cliques e teclas'],
+  ['app',           'app.test.js',       'comportamento no DOM: cliques, teclas e o que aparece'],
+  ['preferências',  'prefs.test.js',     'o que o app lembra entre aberturas, e o que recusa'],
+  ['instalável',    'pwa.test.js',       'manifest, ícones, fonte local e o service worker rodando'],
   ['celular',       'mobile.test.js',    'alvos de toque, metas do iOS, largura por aparelho'],
   ['sem-script',    'noscript.test.js',  'o aviso quando o JavaScript não roda']
 ];

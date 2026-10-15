@@ -15,12 +15,25 @@
      quadrada e com folga nas bordas, senão a máscara come a cabeça do
      braço. PNG opaco, porque transparência no iOS vira preto. -->
 <link rel="apple-touch-icon" href="icone-180.png">
-<link rel="icon" type="image/png" sizes="180x180" href="icone-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icone-192.png">
+<!-- O manifest é o que faz o Chrome do Android oferecer "Instalar app" e
+     gerar um app de verdade, com ícone na gaveta e sem barra de navegador.
+     Ele também é o que o PWABuilder lê quando for a hora da Play Store. -->
+<link rel="manifest" href="manifest.webmanifest">
 <title>braço — explorador de escalas e acordes no violão</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Archivo+Black&display=swap" rel="stylesheet">
+<!-- A fonte vem do próprio site, não do Google Fonts: um app instalado
+     precisa abrir offline com a mesma cara, e cada abertura deixaria de
+     mandar o IP de quem usa para um terceiro. -->
+<link rel="preload" href="fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+/* Archivo é fonte variável: um arquivo cobre os pesos 400 a 600. Só o
+   subconjunto latino, que já tem tudo do português. O ♯ e o ♭ não estão
+   em subconjunto nenhum e caem para a fonte do sistema, como sempre caíram. */
+@font-face{font-family:'Archivo';font-style:normal;font-weight:400 600;font-display:swap;
+  src:url(fonts/archivo-latin.woff2) format('woff2')}
+@font-face{font-family:'Archivo Black';font-style:normal;font-weight:400;font-display:swap;
+  src:url(fonts/archivo-black-latin.woff2) format('woff2')}
+
 /* ---- a paleta tem DOIS eixos independentes ----
    O TEMA manda na página: bancada, cartão, tinta, e o anel de foco que
    precisa aparecer sobre a bancada (cordas soltas).
@@ -430,11 +443,11 @@ details.gloss dd b{color:var(--ink);font-weight:600}
     <div class="nojs">
       <h2>O JavaScript não está rodando aqui</h2>
       <p>O braço, os acordes e as listas são montados na hora, por script. Sem script sobra a casca — braço vazio e dropdowns em branco, que é provavelmente o que você está vendo.</p>
-      <p>A causa quase sempre é a pré-visualização do app Arquivos do iPhone: ela desenha HTML, mas não executa script. Três saídas, da mais rápida para a mais durável:</p>
+      <p>A causa quase sempre é um visualizador de arquivos — o app de arquivos do celular, a pré-visualização de um anexo de e-mail — que desenha HTML mas não executa script. Três saídas, da mais rápida para a mais durável:</p>
       <ol>
-        <li><b>Abra pelo app do Claude.</b> Toque no arquivo na conversa onde ele foi entregue — ali ele roda.</li>
-        <li><b>Sirva pela rede local.</b> Num computador na mesma rede, dentro da pasta do arquivo: <code>python3 -m http.server 8000</code>. No iPhone, abra <code>http://IP-DO-COMPUTADOR:8000/braco.html</code>.</li>
-        <li><b>Hospede num servidor.</b> Qualquer host estático serve. Com URL fixa e HTTPS, o <i>Adicionar à Tela de Início</i> funciona e ele abre como aplicativo.</li>
+        <li><b>Abra num navegador.</b> Chrome, Firefox ou Safari, pelo endereço publicado ou pelo arquivo. Se mesmo assim aparecer este aviso, o JavaScript está desligado nas configurações do navegador para este site.</li>
+        <li><b>Sirva pela rede local.</b> Num computador na mesma rede, dentro da pasta do arquivo: <code>python3 -m http.server 8000</code>. No celular, abra <code>http://IP-DO-COMPUTADOR:8000/</code>.</li>
+        <li><b>Hospede num servidor.</b> Qualquer host estático serve. Com URL fixa e HTTPS, o navegador oferece instalar como app — no Android, pelo menu do Chrome, <i>Instalar app</i>.</li>
       </ol>
     </div>
   </noscript>
@@ -1787,15 +1800,26 @@ function syncSound(){
   btn('btn-sound').setAttribute('aria-pressed',String(state.sound));
   btn('btn-sound').textContent = state.sound?'som':'sem som';
 }
+/* Os rótulos dos botões de preferência saem do estado num lugar só. Antes
+   cada clique escrevia o próprio rótulo, o que bastava enquanto o estado só
+   mudava por clique; com preferências restauradas na abertura, um botão
+   escrito só no clique mentiria até o primeiro toque. */
+function syncRotulos(){
+  btn('btn-acc').textContent = state.acc==='sharp' ? 'sustenidos' : 'bemóis';
+  btn('btn-label').textContent = 'rótulo: ' + state.label;
+  btn('btn-names').setAttribute('aria-pressed', String(state.showNames));
+  btn('btn-names').textContent = state.showNames ? 'notas apagadas' : 'só o conjunto';
+  btn('btn-orient').textContent = state.orient==='v' ? 'deitar o braço' : 'levantar o braço';
+  syncSound();
+  selTun.value = state.tuning.id;
+  selFret.value = String(state.frets);
+}
 btn('btn-orient').addEventListener('click', ()=>{
-  state.orient = state.orient==='v'?'h':'v';
-  btn('btn-orient').textContent = state.orient==='v'?'deitar o braço':'levantar o braço';
-  buildBoard(); });
+  state.orient = state.orient==='v'?'h':'v'; syncRotulos(); buildBoard(); });
 /* ---- tema e estilo de braço ----
    Nenhum dos dois toca em cor no JavaScript: um mexe no color-scheme da
    raiz, o outro num data- do braço, e a paleta inteira vem atrás pelo CSS.
    Assim não existe cor escrita em dois lugares que possam discordar. */
-/* símbolo, nome e a cor da barra do navegador, um por tema */
 /* meia-lua para "o que o sistema mandar", sol para claro, lua para escuro.
    O ☀ pede o seletor de variação de texto para não virar emoji colorido em
    algumas fontes; ◐ e ☾ não têm versão emoji e vão limpos. */
@@ -1842,10 +1866,7 @@ btn('btn-neck').addEventListener('click', ()=>{
   syncNeck(); });
 
 btn('btn-names').addEventListener('click', ()=>{
-  state.showNames=!state.showNames;
-  btn('btn-names').setAttribute('aria-pressed',String(state.showNames));
-  btn('btn-names').textContent = state.showNames?'notas apagadas':'só o conjunto';
-  paint(); });
+  state.showNames=!state.showNames; syncRotulos(); paint(); });
 btn('btn-sound').addEventListener('click', ()=>{ state.sound=!state.sound; syncSound(); });
 /* recolher é só marcar [hidden] em cada texto: o conteúdo continua no
    documento, então o paint pode reescrever a dica sem reabri-la, e quem
@@ -1891,12 +1912,10 @@ document.addEventListener('keydown', e=>{
 });
 btn('btn-acc').addEventListener('click', ()=>{
   state.acc = state.acc==='sharp'?'flat':'sharp';
-  btn('btn-acc').textContent = state.acc==='sharp'?'sustenidos':'bemóis';
-  respell(); buildRoots(); syncTunerLabels(); paint(); });
+  syncRotulos(); respell(); buildRoots(); syncTunerLabels(); paint(); });
 btn('btn-label').addEventListener('click', ()=>{
   state.label = state.label==='nota'?'intervalo':state.label==='intervalo'?'solfejo':'nota';
-  btn('btn-label').textContent = 'rótulo: '+state.label;
-  buildRoots(); syncTunerLabels(); paint(); });
+  syncRotulos(); buildRoots(); syncTunerLabels(); paint(); });
 btn('btn-clear').addEventListener('click', ()=>{
   clearPick(); state.adhoc=null; state.adhocFrom=null; state.kind='nota';
   state.formIdx=0; paint(); });
@@ -2090,6 +2109,57 @@ if (window.matchMedia &&
     window.matchMedia('(max-width:760px), (pointer:coarse)').matches)
   state.open.inst = false;
 
+/* ---- preferências ----
+   Guardo como o app está AJUSTADO, não o que ele está MOSTRANDO: tema,
+   estilo, casas, afinação, grafia, rótulo, som, documentação, orientação,
+   tríade ou tétrade, e quais cartões estão abertos. Tom, acorde e montagem
+   à mão não — abrir o app no acorde que você deixou ontem parece bug.
+
+   O que vem do armazenamento nunca é confiado: cada campo passa por uma
+   lista do que é válido, e o que não passa é ignorado em silêncio. Um
+   "frets: 999" gravado por uma versão futura, ou um JSON cortado ao meio,
+   não pode impedir o app de abrir. E se o navegador negar o armazenamento
+   (aba anônima, origem opaca, cota cheia), o app só não lembra. */
+const PREF_CHAVE = 'braco.preferencias.v1';
+function lerPrefs(){
+  let p;
+  try { p = JSON.parse(localStorage.getItem(PREF_CHAVE)); } catch(e){ return; }
+  if (!p || typeof p !== 'object') return;
+  const vale = (v, lista) => lista.includes(v);
+  if (vale(p.theme, TEMAS.map(t=>t[0])))  state.theme  = p.theme;
+  if (vale(p.neck,  BRACOS.map(b=>b[0]))) state.neck   = p.neck;
+  if (vale(p.label, ['nota','intervalo','solfejo'])) state.label = p.label;
+  if (vale(p.acc,   ['sharp','flat']))    state.acc    = p.acc;
+  if (vale(p.orient,['v','h']))           state.orient = p.orient;
+  if (vale(p.frets, [...selFret.options].map(o=>+o.value))) state.frets = p.frets;
+  const afinacao = TUNINGS.find(t=>t.id===p.tuning);
+  if (afinacao) state.tuning = afinacao;
+  ['showNames','sound','prose','tetrad'].forEach(k=>{
+    if (typeof p[k] === 'boolean') state[k] = p[k]; });
+  if (p.open && typeof p.open === 'object')
+    Object.keys(state.open).forEach(k=>{
+      if (typeof p.open[k] === 'boolean') state.open[k] = p.open[k]; });
+}
+function salvarPrefs(){
+  try {
+    localStorage.setItem(PREF_CHAVE, JSON.stringify({
+      theme:state.theme, neck:state.neck, label:state.label, acc:state.acc,
+      orient:state.orient, frets:state.frets, tuning:state.tuning.id,
+      showNames:state.showNames, sound:state.sound, prose:state.prose,
+      tetrad:state.tetrad, open:state.open }));
+  } catch(e){}
+}
+/* salvo depois de qualquer clique ou troca, num ouvinte só no documento:
+   ele roda depois do ouvinte do botão, quando o estado já mudou, e nenhum
+   botão novo precisa lembrar de chamar nada */
+document.addEventListener('click', salvarPrefs);
+document.addEventListener('change', salvarPrefs);
+
+/* a escolha explícita vence o padrão do celular: quem abriu o Instrumento
+   no telefone quer encontrar ele aberto */
+lerPrefs();
+respell();
+syncRotulos();
 buildRoots();
 buildBoard();
 syncProse();
@@ -2099,6 +2169,12 @@ syncNeck();
 buildArc();
 buildTunerStrings();
 drawTuner(null);
+
+/* offline e instalação como app. O navegador só aceita service worker em
+   https ou localhost: aberto do disco ele recusa, e o app segue funcionando
+   como sempre funcionou, só sem o modo offline. */
+if ('serviceWorker' in navigator && location.protocol !== 'file:')
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
 
 </script>
 </body>

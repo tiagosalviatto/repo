@@ -1,11 +1,11 @@
-/* Reproduz as duas situações: script desligado (app Arquivos) e ligado. */
+/* Reproduz as duas situações: script desligado (visualizador de arquivos) e ligado. */
 const {JSDOM}=require('jsdom');
 const html=require('./_harness').html;
 let fail=0;
 const eq=(g,e,m)=>{const a=JSON.stringify(g),b=JSON.stringify(e);
   if(a!==b){fail++;console.log('  FALHOU '+m+'\n    esperado '+b+'\n    obtido   '+a);}else console.log('  ok  '+m+' = '+a);};
 
-console.log('\n[CA] Script DESLIGADO — o que o app Arquivos mostra');
+console.log('\n[CA] Script DESLIGADO — o que um visualizador de arquivos mostra');
 const off=new JSDOM(html).window.document;   // sem runScripts: script não executa
 eq(off.querySelectorAll('.dot').length,0,'braço vazio, como você viu');
 eq([...off.querySelectorAll('#sel-chord option')].length,0,'dropdown sem opções, como você viu');
