@@ -73,7 +73,11 @@ eq(icones.every(i=>ESTATICOS.includes(i.src)) && faces.every(f=>ESTATICOS.includ
 /* o carimbo: sem ele, trocar uma fonte ou um ícone e esquecer de subir a
    versão deixaria todo celular com o arquivo velho para sempre */
 const h=crypto.createHash('sha256');
-ESTATICOS.filter(p=>p!=='./').forEach(p=>{h.update(p+'\0'); h.update(fs.readFileSync(path.join(RAIZ,p)));});
+/* arquivo de texto entra com fim de linha normalizado: com core.autocrlf,
+   um clone no Windows recebe o manifest com CRLF, e o carimbo mudaria sem o
+   arquivo ter mudado — falso alarme mandando trocar a VERSAO à toa */
+const conteudo=b=>b.includes(0) ? b : Buffer.from(b.toString('latin1').replace(/\r\n/g,'\n'),'latin1');
+ESTATICOS.filter(p=>p!=='./').forEach(p=>{h.update(p+'\0'); h.update(conteudo(fs.readFileSync(path.join(RAIZ,p))));});
 const carimbo='braco-'+h.digest('hex').slice(0,8);
 const versao=swSrc.match(/const VERSAO = '([^']+)'/)[1];
 eq(versao,carimbo,versao===carimbo
