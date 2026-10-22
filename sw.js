@@ -18,7 +18,7 @@
 
    Pedido de outra origem ou que não seja GET passa direto, sem tocar em nada. */
 
-const VERSAO = 'braco-4a7da0bb';
+const VERSAO = 'braco-11f83c4b';
 const ESTATICOS = [
   './',
   'manifest.webmanifest',

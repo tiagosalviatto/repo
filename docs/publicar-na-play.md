@@ -12,7 +12,7 @@ Roteiro para a sessão que for fazer isto — escrito para quem pega o projeto s
 
 | peça | arquivo | conferido por |
 |---|---|---|
-| manifest (`id`/`start_url`/`scope` relativos) | `manifest.webmanifest` | `tests/pwa.test.js` [PA] |
+| manifest (`id` próprio, `"braco"`; `start_url`/`scope` relativos) | `manifest.webmanifest` | `tests/pwa.test.js` [PA] |
 | ícones any 192/512 e maskable 512 | `icone-*.png`, gerados por `tools/gera-icones.py` | [PB] |
 | fonte local (Archivo, OFL junto) | `fonts/` | [PC] |
 | service worker: página rede-primeiro, resto cache-primeiro, `VERSAO` carimbada | `sw.js` | [PD] e [PE], que **executa** o sw.js |

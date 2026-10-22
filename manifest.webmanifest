@@ -2,7 +2,7 @@
   "name": "braço — escalas e acordes no violão",
   "short_name": "braço",
   "description": "Explorador de braço de violão: notas, acordes, formas, campo harmônico e afinador.",
-  "id": "./",
+  "id": "braco",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -31,6 +31,15 @@ eq([man.short_name, man.short_name.length<=12],['braço',true],
 eq(!!man.name && !!man.description,true,'nome completo e descrição, que o PWABuilder leva para a Play');
 eq([man.id,man.start_url,man.scope].every(relativo),true,
    'id, início e escopo relativos: valem em /repo/ hoje e num domínio próprio amanhã');
+/* O id é a identidade do app instalado, e o navegador o resolve contra a
+   ORIGEM, não contra a pasta do manifest: "./" vira a raiz do github.io, a
+   mesma de qualquer outro app da conta que escreva "./" — e foi assim que o
+   FGV Aluno instalado impediu o Chrome de oferecer "Instalar" ao braço.
+   Por isso o valor fica travado aqui: mudá-lo depois de instalado faz o
+   Chrome tratar o braço como outro app, e o instalado para de atualizar. */
+const ORIGEM='https://exemplo.github.io/';
+eq(new URL(man.id,ORIGEM).href,ORIGEM+'braco',
+   'id próprio: resolvido contra a origem, não cai na raiz que os apps vizinhos dividem');
 eq([man.background_color,man.theme_color].every(c=>/^#[0-9A-Fa-f]{6}$/.test(c)),true,
    'cores em hexadecimal, que é o que a tela de abertura do Android aceita');
 eq(man.lang,'pt-BR','idioma declarado');
